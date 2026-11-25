@@ -35,7 +35,7 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
     map.current = instance
     instance.createPane('streets').style.zIndex = '250'
     instance.attributionControl.addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors')
-    streets.current = L.layerGroup().addTo(instance)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors', crossOrigin: true }).addTo(instance)\n    streets.current = L.layerGroup().addTo(instance)
     lines.current = L.layerGroup().addTo(instance)
     pin.current = L.layerGroup().addTo(instance)
     const observer = new ResizeObserver(() => instance.invalidateSize({ pan: false }))
