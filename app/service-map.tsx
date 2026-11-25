@@ -33,11 +33,11 @@ function readRoutes(): Route[] {
 }
 
 export default function ServiceMap() {
-  const [routes, setRoutes] = useState<Route[]>(readRoutes)
+  const [routes, setRoutes] = useState<Route[]>(readRoutes)\n  const [roadRoutes, setRoadRoutes] = useState<Route[]>(readRoutes)
   const [selected, setSelected] = useState(0)
   const [draft, setDraft] = useState<Route | null>(null)
   const [status, setStatus] = useState('')
-  const active = draft ?? routes[selected]
+  const active = draft ?? routes[selected]\n  useEffect(() => {\n    let cancelled = false\n    async function roadRoute(route: Route): Promise<Route> {\n      if (route.points.length < 2) return route\n      const coordinates = route.points.map(([lat,lng]) => lng + ',' + lat).join(';')\n      try {\n        const response = await fetch('https://router.project-osrm.org/route/v1/driving/' + coordinates + '?overview=full&geometries=geojson&steps=false', { signal: AbortSignal.timeout(12000) })\n        if (!response.ok) return route\n        const data = await response.json()\n        const line = data.routes?.[0]?.geometry?.coordinates\n        if (!Array.isArray(line) || line.length < 2) return route\n        return { ...route, points: line.map(([lng,lat]: [number,number]) => [lat,lng] as Point) }\n      } catch { return route }\n    }\n    Promise.all(routes.map(roadRoute)).then(result => { if (!cancelled) setRoadRoutes(result) })\n    return () => { cancelled = true }\n  }, [routes])\n
 
   const [basemap, setBasemap] = useState<Basemap | null>(null)
   const [updating, setUpdating] = useState(false)
@@ -150,7 +150,7 @@ export default function ServiceMap() {
           </li>)}
         </ul>}
         <div className="route-map">
-          <YazdMap basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint}/>
+          <YazdMap basemap={basemap} routes={roadRoutes.map((route, index) => ({ color: colors[index], points: index === selected && draft ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint}/>
         </div>
         <a className="map-link" href="https://www.openstreetmap.org/#map=13/31.897/54.367" target="_blank" rel="noreferrer">باز کردن یزد در OpenStreetMap <ExternalLink size={13}/></a>
       </div>
