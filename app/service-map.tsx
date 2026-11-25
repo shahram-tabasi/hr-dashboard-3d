@@ -33,11 +33,30 @@ function readRoutes(): Route[] {
 }
 
 export default function ServiceMap() {
-  const [routes, setRoutes] = useState<Route[]>(readRoutes)\n  const [roadRoutes, setRoadRoutes] = useState<Route[]>(readRoutes)
+  const [routes, setRoutes] = useState<Route[]>(readRoutes)
+  const [roadRoutes, setRoadRoutes] = useState<Route[]>(readRoutes)
   const [selected, setSelected] = useState(0)
   const [draft, setDraft] = useState<Route | null>(null)
   const [status, setStatus] = useState('')
-  const active = draft ?? routes[selected]\n  useEffect(() => {\n    let cancelled = false\n    async function roadRoute(route: Route): Promise<Route> {\n      if (route.points.length < 2) return route\n      const coordinates = route.points.map(([lat,lng]) => lng + ',' + lat).join(';')\n      try {\n        const response = await fetch('https://router.project-osrm.org/route/v1/driving/' + coordinates + '?overview=full&geometries=geojson&steps=false', { signal: AbortSignal.timeout(12000) })\n        if (!response.ok) return route\n        const data = await response.json()\n        const line = data.routes?.[0]?.geometry?.coordinates\n        if (!Array.isArray(line) || line.length < 2) return route\n        return { ...route, points: line.map(([lng,lat]: [number,number]) => [lat,lng] as Point) }\n      } catch { return route }\n    }\n    Promise.all(routes.map(roadRoute)).then(result => { if (!cancelled) setRoadRoutes(result) })\n    return () => { cancelled = true }\n  }, [routes])\n
+  const active = draft ?? routes[selected]
+
+  useEffect(() => {
+    let cancelled = false
+    async function roadRoute(route: Route): Promise<Route> {
+      if (route.points.length < 2) return route
+      const coordinates = route.points.map(([lat, lng]) => lng + ',' + lat).join(';')
+      try {
+        const response = await fetch('https://router.project-osrm.org/route/v1/driving/' + coordinates + '?overview=full&geometries=geojson&steps=false', { signal: AbortSignal.timeout(12000) })
+        if (!response.ok) return route
+        const data = await response.json()
+        const line = data.routes?.[0]?.geometry?.coordinates
+        if (!Array.isArray(line) || line.length < 2) return route
+        return { ...route, points: line.map(([lng, lat]: [number, number]) => [lat, lng] as Point) }
+      } catch { return route }
+    }
+    Promise.all(routes.map(roadRoute)).then(result => { if (!cancelled) setRoadRoutes(result) })
+    return () => { cancelled = true }
+  }, [routes])
 
   const [basemap, setBasemap] = useState<Basemap | null>(null)
   const [updating, setUpdating] = useState(false)
