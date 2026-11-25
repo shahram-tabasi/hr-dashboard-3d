@@ -10,7 +10,7 @@ const metadataPath = path.join(directory, 'profile.json')
 export async function GET() {
   try {
     const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { type: string }
-    return NextResponse.json({ url: '/api/profile/image', type: metadata.type })
+    return NextResponse.json({ url: '/api/profile/image?v=' + encodeURIComponent(metadata.updatedAt), type: metadata.type })
   } catch {
     return NextResponse.json({ url: null })
   }
