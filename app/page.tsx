@@ -4,7 +4,7 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import Sky from './sky'
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Activity, ArrowDownToLine, ArrowLeft, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Sparkles, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { Activity, ArrowDownToLine, ArrowLeft, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { cities, getDashboard, type City } from '../lib/dashboard'
 import sources from '../lib/sources.json'
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
         <svg className="sidebar-outline outline-compact" viewBox="0 0 76 852" preserveAspectRatio="none" aria-hidden="true">
           <path d="M24 1 H54 C68 1 75 8 75 22 V830 C75 844 68 851 54 851 H24 C9 851 1 837 2.5 809 C9 562 9 280 2.5 43 C1 15 9 1 24 1 Z" />
         </svg>
-        <div className="brand"><span className="brand-icon"><Sparkles size={23}/></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
+        <div className="brand"><span className="brand-icon"><Image src="/kavir-logo.svg" width={29} height={29} alt="لوگوی کویر" /></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
         <div className="sidebar-person">
           <span className="avatar-frame">
             <Image src="/hr-avatar.webp" alt="" width={48} height={48} />
