@@ -15,7 +15,8 @@ function zip(entries: {name:string;content:string}[]) {
     central.push(join([put32(0x02014b50),put16(20),put16(20),put16(0),put16(0),put16(0),put16(0),put32(crc),put32(data.length),put32(data.length),put16(name.length),put16(0),put16(0),put16(0),put16(0),put32(0),put32(offset),name]));offset+=local.length
   }
   const directory=join(central),end=join([put32(0x06054b50),put16(0),put16(0),put16(entries.length),put16(entries.length),put32(directory.length),put32(offset),put16(0)])
-  return new Blob([...chunks,directory,end],{type:'application/octet-stream'})
+  const parts = [...chunks, directory, end].map((chunk) => { const copy = new Uint8Array(chunk.byteLength); copy.set(chunk); return copy.buffer })
+  return new Blob(parts,{type:'application/octet-stream'})
 }
 function save(blob:Blob,name:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 export function exportExcel(sheets:ExportSheet[]) {
