@@ -680,3 +680,7 @@ button:disabled { opacity:.45; }
 
 .notification-popover ul { max-height:240px; overflow:auto; display:grid; gap:7px; margin:10px 0 14px; padding:0 18px 0 0; color:#c9d5e4; font-size:12px; }
 .notification-popover li { padding-bottom:6px; border-bottom:1px solid #ffffff12; }
+
+.header-profile { display:flex; align-items:center; gap:8px; padding-inline:5px; color:#dce6f3; font-size:12px; white-space:nowrap; }
+.header-profile img { border-radius:50%; object-fit:cover; border:1px solid #b7c9df66; }
+@media (max-width:580px) { .header-profile strong { display:none; } .header-profile img { width:27px; height:27px; } }
