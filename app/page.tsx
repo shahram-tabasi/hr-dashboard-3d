@@ -86,6 +86,8 @@ export default function Dashboard() {
   ]
   const shownSources = sources.filter(row => (!source || row.source === source) && Object.values(row).some(value => value.includes(query.trim())))
 
+  useEffect(() => { fetch('/api/profile').then(r=>r.ok?r.json():null).then(data=>{ if(data?.url) setProfileImage(data.url) }).catch(()=>{}) }, [])
+
   useEffect(() => {
     if (!help) return
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -191,7 +193,7 @@ export default function Dashboard() {
       <main>
         <header className="topbar">
           <div className="trail"><span>فضای کاری</span><ArrowLeft size={13}/><strong>{view}</strong></div>
-          <div className="actions"><button className="icon-button notification-button" aria-label="اعلان‌های تقویم" onClick={()=>setNotifications(!notifications)}><Bell size={17}/><i/></button>
+          <div className="actions"><button className="icon-button notification-button" aria-label="اعلان‌های تقویم" onClick={()=>{setNotifications(!notifications);setImportMessage('')}}><Bell size={17}/><i/></button>
             {view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
             {view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <button className="export" aria-label="خروجی گزارش" onClick={download}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
           </div>
