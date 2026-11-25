@@ -15,6 +15,17 @@ docker compose ps
 
 برای به‌روزرسانی، `git pull --ff-only origin main` و سپس همان فرمان `docker compose up` را اجرا کنید. برای استفاده از قابلیت نقشهٔ آفلاین در مرورگر راه دور، داشبورد را با HTTPS ارائه کنید یا از تونل SSH و نشانی `http://localhost:3000` استفاده کنید.
 
+### ساخت از طریق Harbor
+
+اگر Docker Hub در دسترس نیست، تصویر پایهٔ هر دو مرحله را از پروژهٔ خصوصی `docker-proxy` بگیرید:
+
+```bash
+docker login registry.simorghai.com
+NODE_IMAGE=registry.simorghai.com/docker-proxy/library/node:24-bookworm-slim docker compose up -d --build --wait
+```
+
+می‌توانید `NODE_IMAGE` را در فایل محلی `.env` ثبت کنید تا در ساخت‌های بعدی هم استفاده شود. نصب بسته‌های قفل‌شده همچنان به دسترسی کانتینر ساخت به `registry.npmjs.org` نیاز دارد.
+
 ## اجرای محلی برای توسعه
 
 ```bash
