@@ -1,0 +1,182 @@
+[
+  {
+    "field": "کد پرسنلی",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "تاریخ استخدام",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "مدرک",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "وضعیت تاهل",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "تعداد فرزند",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "جنسیت",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "سابقه قبلی الکتروکویر",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "سابقه بیمه قبل از الکتروکویر",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "واحد",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "رده سازمانی",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "گروه شغلی",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "رتبه شغلی",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "تاریح تولد",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "محل خدمت",
+    "source": "راهکاران- کارگزینی",
+    "method": "API"
+  },
+  {
+    "field": "حقوق",
+    "source": "راهکاران- مالی",
+    "method": "API"
+  },
+  {
+    "field": "مرخصی",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "تاخیر",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "غیبت",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "اضافه کار",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "ماموریت",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "شیفت",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "وضعیت حضور انلاین",
+    "source": "کسری",
+    "method": "API"
+  },
+  {
+    "field": "تاریخ تولد فرزندان",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "مشخصات همسر",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "موبایل",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "آدرس منزل",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "اطلاعات پرسنلی از BPMS",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "وضعیت وام",
+    "source": "BPMS",
+    "method": "API / TABLE"
+  },
+  {
+    "field": "آموزش",
+    "source": "اکسل",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "مصاحبه خروج",
+    "source": "اکسل",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "امتیاز ارزیابی شایستگی ها",
+    "source": "اکسل",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "کمیته انضباطی",
+    "source": "اکسل",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "وضعیت قرارداد(بیمه-مشاور-کاراموز-تمام وقت...)",
+    "source": "اطلاعات کارگزینی",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "درحال تحصیل",
+    "source": "اطلاعات کارگزینی",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "رفاهیات",
+    "source": "اطلاعات پشتیبانی رفاه",
+    "method": "تیم هوش مصنوعی"
+  },
+  {
+    "field": "نظام پیشنهادات",
+    "source": "",
+    "method": "تیم هوش مصنوعی"
+  }
+]
