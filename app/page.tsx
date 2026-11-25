@@ -53,7 +53,8 @@ export default function Dashboard() {
   const ToggleIcon = collapsed ? PanelRightOpen : PanelRightClose
   const [help, setHelp] = useState(false)
   const [profileImage, setProfileImage] = useState('/hr-avatar.webp')
-  const [notifications, setNotifications] = useState(false)\n  const [calendarNotifications, setCalendarNotifications] = useState<string[]>([])
+  const [notifications, setNotifications] = useState(false)
+  const [calendarNotifications, setCalendarNotifications] = useState<string[]>([])
   const [reportChecks, setReportChecks] = useState<string[]>(['overview','workforce','attendance','loans'])
   const [loanKind, setLoanKind] = useState('همه وام‌ها')
   const [loanUnit, setLoanUnit] = useState('همه واحدها')
