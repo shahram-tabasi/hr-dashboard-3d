@@ -7,10 +7,15 @@ const directory = '/app/data'
 const imagePath = path.join(directory, 'profile-image')
 const metadataPath = path.join(directory, 'profile.json')
 
+type ProfileMetadata = { type: string; updatedAt?: string }
+
 export async function GET() {
   try {
-    const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { type: string }
-    return NextResponse.json({ url: '/api/profile/image?v=' + encodeURIComponent(metadata.updatedAt), type: metadata.type })
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as ProfileMetadata
+    return NextResponse.json({
+      url: '/api/profile/image?v=' + encodeURIComponent(metadata.updatedAt ?? ''),
+      type: metadata.type,
+    })
   } catch {
     return NextResponse.json({ url: null })
   }
