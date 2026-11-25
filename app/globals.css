@@ -677,3 +677,6 @@ td,th { border-color:#ffffff16; }
 .loan-kpis .metric { min-height:85px; }
 button:disabled { opacity:.45; }
 @media (max-width:580px) { .notification-popover { inset-inline:12px; top:65px; width:auto; } .report-actions button { flex:1 1 140px; justify-content:center; } }
+
+.notification-popover ul { max-height:240px; overflow:auto; display:grid; gap:7px; margin:10px 0 14px; padding:0 18px 0 0; color:#c9d5e4; font-size:12px; }
+.notification-popover li { padding-bottom:6px; border-bottom:1px solid #ffffff12; }
