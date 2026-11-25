@@ -53,7 +53,7 @@ export default function Dashboard() {
   const ToggleIcon = collapsed ? PanelRightOpen : PanelRightClose
   const [help, setHelp] = useState(false)
   const [profileImage, setProfileImage] = useState('/hr-avatar.webp')
-  const [notifications, setNotifications] = useState(false)
+  const [notifications, setNotifications] = useState(false)\n  const [calendarNotifications, setCalendarNotifications] = useState<string[]>([])
   const [reportChecks, setReportChecks] = useState<string[]>(['overview','workforce','attendance','loans'])
   const [loanKind, setLoanKind] = useState('همه وام‌ها')
   const [loanUnit, setLoanUnit] = useState('همه واحدها')
@@ -193,7 +193,7 @@ export default function Dashboard() {
       <main>
         <header className="topbar">
           <div className="trail"><span>فضای کاری</span><ArrowLeft size={13}/><strong>{view}</strong></div>
-          <div className="actions"><button className="icon-button notification-button" aria-label="اعلان‌های تقویم" onClick={()=>{setNotifications(!notifications);setImportMessage('')}}><Bell size={17}/><i/></button>
+          <div className="actions"><button className="icon-button notification-button" aria-label="اعلان‌های تقویم" onClick={()=>{const next=!notifications;setNotifications(next);if(next){try{const tasks=JSON.parse(localStorage.getItem('didar-planner-v1')||'[]') as {title:string;day:string;time?:string;done?:boolean}[];setCalendarNotifications(tasks.filter(t=>!t.done).slice(0,8).map(t=>t.day+' · '+(t.time||'بدون ساعت')+' · '+t.title))}catch{setCalendarNotifications([])}}}}><Bell size={17}/><i/></button>
             {view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
             {view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <button className="export" aria-label="خروجی گزارش" onClick={download}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
           </div>
@@ -241,7 +241,7 @@ export default function Dashboard() {
         {view === 'منابع داده' && <section className="panel glass catalog" id="catalog" tabIndex={-1}><div className="panel-head"><div><h2>کاتالوگ داده‌ها</h2><p>{fa(shownSources.length)} فیلد · اتصال‌ها در انتظار تکمیل</p></div><span className="panel-icon"><Database size={19}/></span></div><div className="catalog-filters"><input id="catalog-filters" aria-label="جست‌وجوی فیلدها" placeholder="جست‌وجو در فیلدها…" value={query} onChange={event => setQuery(event.target.value)}/><select aria-label="مرجع داده" value={source} onChange={event => setSource(event.target.value)}><option value="">همه مراجع</option>{sourceGroups.map(group => <option key={group}>{group}</option>)}</select></div><div className="table-wrap"><table><thead><tr><th>فیلد</th><th>مرجع</th><th>روش دریافت / تیم</th></tr></thead><tbody>{shownSources.map(row => <tr key={row.field}><td>{row.field}</td><td>{row.source || '—'}</td><td>{row.method || '—'}</td></tr>)}</tbody></table>{shownSources.length === 0 && <p className="empty">فیلدی با این جست‌وجو پیدا نشد.</p>}</div></section>}
         <footer><span>دیدار · منابع انسانی الکتروکویر</span><button onClick={() => go('منابع داده')}>مراجع داده <ArrowLeft size={13}/></button></footer>
       </main>
-      {notifications && <div className="notification-popover"><strong>یادآورهای تقویم</strong><p>برای مشاهدهٔ رویدادها و کارهای ثبت‌شده، تقویم شمسی را باز کنید.</p><button className="icon-button" onClick={()=>{setNotifications(false);go('تقویم شمسی')}}>رفتن به تقویم</button></div>}
+      {notifications && <div className="notification-popover"><strong>یادآورهای تقویم</strong>{calendarNotifications.length ? <ul>{calendarNotifications.map((item,i)=><li key={i}>{item}</li>)}</ul> : <p>یادآور ثبت‌نشده‌ای در این مرورگر وجود ندارد. برای افزودن رویداد، تقویم شمسی را باز کنید.</p>}<button className="icon-button" onClick={()=>{setNotifications(false);go('تقویم شمسی')}}>رفتن به تقویم</button></div>}
       {help && <div className="modal-backdrop" onClick={() => setHelp(false)}><section className="modal glass" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><div className="panel-head"><h2 id="help-title">راهنمای داشبورد</h2><button autoFocus className="icon-button" aria-label="بستن" onClick={() => setHelp(false)}><X size={20}/></button></div><p>از منوی بالای صفحه یا نمودار شعب، تهران و یزد را فیلتر کنید. خروجی CSV براساس نمای فعلی تهیه می‌شود.</p><p>شاخص‌ها با داده‌های نمایشی نمایش داده می‌شوند. فهرست منابع و روش دریافت آن‌ها در بخش «منابع داده» آمده است.</p></section></div>}
     </div>
   )
