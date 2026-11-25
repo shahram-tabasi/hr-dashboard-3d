@@ -34,10 +34,29 @@ function readRoutes(): Route[] {
 
 export default function ServiceMap() {
   const [routes, setRoutes] = useState<Route[]>(readRoutes)
+  const [roadRoutes, setRoadRoutes] = useState<Route[]>(readRoutes)
   const [selected, setSelected] = useState(0)
   const [draft, setDraft] = useState<Route | null>(null)
   const [status, setStatus] = useState('')
   const active = draft ?? routes[selected]
+
+  useEffect(() => {
+    let cancelled = false
+    async function roadRoute(route: Route): Promise<Route> {
+      if (route.points.length < 2) return route
+      const coordinates = route.points.map(([lat, lng]) => lng + ',' + lat).join(';')
+      try {
+        const response = await fetch('https://router.project-osrm.org/route/v1/driving/' + coordinates + '?overview=full&geometries=geojson&steps=false', { signal: AbortSignal.timeout(12000) })
+        if (!response.ok) return route
+        const data = await response.json()
+        const line = data.routes?.[0]?.geometry?.coordinates
+        if (!Array.isArray(line) || line.length < 2) return route
+        return { ...route, points: line.map(([lng, lat]: [number, number]) => [lat, lng] as Point) }
+      } catch { return route }
+    }
+    Promise.all(routes.map(roadRoute)).then(result => { if (!cancelled) setRoadRoutes(result) })
+    return () => { cancelled = true }
+  }, [routes])
 
   const [basemap, setBasemap] = useState<Basemap | null>(null)
   const [updating, setUpdating] = useState(false)
@@ -150,7 +169,7 @@ export default function ServiceMap() {
           </li>)}
         </ul>}
         <div className="route-map">
-          <YazdMap basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint}/>
+          <YazdMap basemap={basemap} routes={roadRoutes.map((route, index) => ({ color: colors[index], points: index === selected && draft ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint}/>
         </div>
         <a className="map-link" href="https://www.openstreetmap.org/#map=13/31.897/54.367" target="_blank" rel="noreferrer">باز کردن یزد در OpenStreetMap <ExternalLink size={13}/></a>
       </div>

@@ -3,10 +3,12 @@
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import Sky from './sky'
-import { useEffect, useState, type CSSProperties } from 'react'
-import { Activity, ArrowDownToLine, ArrowLeft, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Activity, ArrowDownToLine, ArrowLeft, Bell, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, FileSpreadsheet, FileUp, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Presentation, UserCheck, UserPlus, Users, X, Wallet, Camera } from 'lucide-react'
 import { cities, getDashboard, type City } from '../lib/dashboard'
 import sources from '../lib/sources.json'
+import { sampleLoans } from '../lib/loans'
+import { exportExcel, exportPowerPoint, type ExportSheet } from '../lib/presentation-export'
 
 const Planner = dynamic(() => import('./planner'), { ssr: false })
 const ServiceMap = dynamic(() => import('./service-map'), { ssr: false })
@@ -29,6 +31,8 @@ const nav = [
   ] },
   { id: 'transport', title: 'سرویس کارکنان', icon: BusFront, sections: [{ id: 'service-map', label: 'نقشهٔ سرویس‌های یزد' }] },
   { id: 'planner', title: 'تقویم شمسی', icon: CalendarDays, sections: [{ id: 'daily-planner', label: 'برنامهٔ روزانه' }] },
+  { id: 'loans', title: 'وام‌ها', icon: Wallet, sections: [{ id: 'loan-summary', label: 'گزارش تسهیلات' }] },
+  { id: 'reports', title: 'گزارش و ارائه', icon: Presentation, sections: [{ id: 'report-builder', label: 'انتخاب گزارش‌ها' }] },
   { id: 'data', title: 'منابع داده', icon: Database, sections: [
     { id: 'catalog', label: 'کاتالوگ داده‌ها' },
     { id: 'catalog-filters', label: 'جست‌وجوی فیلدها' },
@@ -48,6 +52,16 @@ export default function Dashboard() {
   const toggleLabel = collapsed ? 'باز کردن نوار کناری' : 'جمع کردن نوار کناری'
   const ToggleIcon = collapsed ? PanelRightOpen : PanelRightClose
   const [help, setHelp] = useState(false)
+  const [profileImage, setProfileImage] = useState('/hr-avatar.webp')
+  const [notifications, setNotifications] = useState(false)
+  const [calendarNotifications, setCalendarNotifications] = useState<string[]>([])
+  const [reportChecks, setReportChecks] = useState<string[]>(['overview','workforce','attendance','loans'])
+  const [loanKind, setLoanKind] = useState('همه وام‌ها')
+  const [loanUnit, setLoanUnit] = useState('همه واحدها')
+  const [importedRows, setImportedRows] = useState<string[][]>([])
+  const [importMessage, setImportMessage] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
+  const [profileName] = useState('الهام اسلام نژد')
   const [query, setQuery] = useState('')
   const [source, setSource] = useState('')
   const data = getDashboard(city)
@@ -73,6 +87,8 @@ export default function Dashboard() {
   ]
   const shownSources = sources.filter(row => (!source || row.source === source) && Object.values(row).some(value => value.includes(query.trim())))
 
+  useEffect(() => { fetch('/api/profile').then(r=>r.ok?r.json():null).then(data=>{ if(data?.url) setProfileImage(data.url) }).catch(()=>{}) }, [])
+
   useEffect(() => {
     if (!help) return
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -95,19 +111,39 @@ export default function Dashboard() {
     setMenu(false)
   }
 
-  function download() {
-    const rows = view === 'منابع داده'
-      ? [['فیلد', 'مرجع', 'روش'], ...shownSources.map(row => [row.field, row.source, row.method])]
-      : view === 'حضور و کارکرد'
-        ? [['شاخص نمونه', 'مقدار', 'واحد', 'شعبه'], ...attendance.map(item => [item.name, item.value, item.unit, city])]
-        : [['واحد سازمانی', 'تعداد نمونه', 'شعبه'], ...data.units.map(unit => [unit.name, unit.count, city])]
-    const csv = rows.map(row => row.map(cell => '"' + String(cell).replaceAll('"', '""') + '"').join(',')).join('\r\n')
-    const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = view === 'منابع داده' ? 'data-catalog.csv' : 'hr-demo.csv'
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const reportOptions = [
+    { id: 'overview', label: 'نمای کلی و شاخص‌ها' }, { id: 'workforce', label: 'نیروی انسانی و واحدها' },
+    { id: 'attendance', label: 'حضور و کارکرد' }, { id: 'loans', label: 'تسهیلات و وام‌ها' },
+    { id: 'sources', label: 'منابع داده' }, { id: 'calendar', label: 'برنامه‌ها و تقویم' },
+  ]
+  const loanRows = sampleLoans.filter(row => (loanKind === 'همه وام‌ها' || row.kind === loanKind) && (loanUnit === 'همه واحدها' || row.unit === loanUnit))
+  const loanTotal = loanRows.reduce((sum,row) => sum + row.amount,0)
+  const loanCount = loanRows.reduce((sum,row) => sum + row.count,0)
+  const unitNames = Array.from(new Set(sampleLoans.map(row => row.unit)))
+  const reportSheets = useMemo<ExportSheet[]>(() => {
+    const sheets: ExportSheet[] = []
+    if (reportChecks.includes('overview')) sheets.push({name:'نمای کلی',rows:[['شاخص','مقدار','شعبه'],['کل کارکنان',data.total,city],['کارکنان فعال',data.active,city],['استخدام جدید',data.hires,city],['در مرخصی',data.leave,city]]})
+    if (reportChecks.includes('workforce')) sheets.push({name:'نیروی انسانی',rows:[['واحد سازمانی','تعداد نمونه','شعبه'],...data.units.map(u=>[u.name,u.count,city])]})
+    if (reportChecks.includes('attendance')) sheets.push({name:'حضور و کارکرد',rows:[['شاخص','مقدار','واحد','شعبه'],...attendance.map(a=>[a.name,a.value,a.unit,city])]})
+    if (reportChecks.includes('loans')) sheets.push({name:'وام‌ها',rows:[['واحد','نوع وام','تعداد','مبلغ ریال'],...loanRows.map(a=>[a.unit,a.kind,a.count,a.amount])]})
+    if (reportChecks.includes('sources')) sheets.push({name:'منابع داده',rows:[['فیلد','مرجع','روش'],...shownSources.map(a=>[a.field,a.source,a.method])]})
+    if (reportChecks.includes('calendar')) sheets.push({name:'تقویم',rows:[['راهنما','اطلاعات'],['کارها','از تب تقویم شمسی خروجی ICS بگیرید']]})
+    return sheets
+  }, [reportChecks, data, city, attendance, loanRows, shownSources])
+  function download() { exportExcel(reportSheets.length ? reportSheets : [{name:'گزارش',rows:[['پیام'],['ابتدا حداقل یک گزارش انتخاب کنید']]}]) }
+  function makeSlides() { if (!reportSheets.length) return; exportPowerPoint(reportSheets.map(sheet=>({title:sheet.name,lines:sheet.rows.slice(1,11).map(row=>row.map(String).join('  |  '))}))) }
+  async function uploadProfile(file?: File) {
+    if (!file) return
+    if (!file.type.startsWith('image/') || file.size > 5*1024*1024) { setImportMessage('تصویر باید حداکثر ۵ مگابایت باشد.'); return }
+    const body = new FormData(); body.set('image',file)
+    try { const response=await fetch('/api/profile',{method:'POST',body}); if(!response.ok) throw new Error('upload'); const result=await response.json(); setProfileImage(result.url); setImportMessage('تصویر پروفایل روی سرور ذخیره شد و برای همه دستگاه‌ها قابل مشاهده است.') }
+    catch { setImportMessage('ذخیره تصویر انجام نشد؛ سرویس سرور را بررسی کنید.') }
+  }
+  async function importFile(file?: File) {
+    if (!file) return
+    const text = await file.text()
+    const rows = text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean).map(line=>line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(cell=>cell.replace(/^"|"$/g,'').replaceAll('""','"')))
+    setImportedRows(rows); setImportMessage(rows.length+' ردیف از فایل خوانده شد. پیش‌نمایش آماده است؛ برای اتصال به BPMS باید ساختار ستون‌ها تطبیق داده شود.')
   }
 
   return (
@@ -124,9 +160,9 @@ export default function Dashboard() {
         <div className="brand"><span className="brand-icon"><Image src="/kavir-logo.svg" width={29} height={29} alt="لوگوی کویر" /></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
         <div className="sidebar-person">
           <span className="avatar-frame">
-            <Image src="/hr-avatar.webp" alt="" width={48} height={48} />
+            <Image src={profileImage} alt={profileName} width={48} height={48} unoptimized />
           </span>
-          <div className="sidebar-label"><strong>پروفایل منابع انسانی</strong><small>ارائهٔ الکتروکویر</small></div>
+          <div className="sidebar-label"><strong>{profileName}</strong><small>واحد منابع انسانی</small></div><label className="profile-upload" title="انتخاب تصویر پروفایل"><Camera size={14}/><input type="file" accept="image/*" onChange={event=>uploadProfile(event.target.files?.[0])}/></label>
         </div>
         <div className="nav-label">فضای کاری</div>
         <nav id="dashboard-navigation" aria-label="ناوبری اصلی">
@@ -158,7 +194,7 @@ export default function Dashboard() {
       <main>
         <header className="topbar">
           <div className="trail"><span>فضای کاری</span><ArrowLeft size={13}/><strong>{view}</strong></div>
-          <div className="actions">
+          <div className="actions"><div className="header-profile"><Image src={profileImage} alt="" width={30} height={30} unoptimized/><strong>{profileName}</strong></div><button className="icon-button notification-button" aria-label="اعلان‌های تقویم" onClick={()=>{const next=!notifications;setNotifications(next);if(next){try{const tasks=JSON.parse(localStorage.getItem('didar-planner-v1')||'[]') as {title:string;day:string;time?:string;done?:boolean}[];setCalendarNotifications(tasks.filter(t=>!t.done).slice(0,8).map(t=>t.day+' · '+(t.time||'بدون ساعت')+' · '+t.title))}catch{setCalendarNotifications([])}}}}><Bell size={17}/><i/></button>
             {view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
             {view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <button className="export" aria-label="خروجی گزارش" onClick={download}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
           </div>
@@ -199,11 +235,14 @@ export default function Dashboard() {
         </>}
 
         {view === 'تقویم شمسی' && <div id="daily-planner" tabIndex={-1}><Planner/></div>}
+        {view === 'وام‌ها' && <section className="panel glass" id="loan-summary"><div className="panel-head"><div><h2>پایش تسهیلات کارکنان</h2><p>تعداد و مجموع مبلغ هر نوع وام در واحدهای سازمانی · داده نمونه</p></div><Wallet/></div><div className="catalog-filters"><select value={loanKind} onChange={e=>setLoanKind(e.target.value)}><option>همه وام‌ها</option><option>کوتاه‌مدت</option><option>امتیازی</option><option>ضروری</option></select><select value={loanUnit} onChange={e=>setLoanUnit(e.target.value)}><option>همه واحدها</option>{unitNames.map(u=><option key={u}>{u}</option>)}</select></div><div className="cards loan-kpis"><article className="metric glass"><small>تعداد تسهیلات</small><strong>{fa(loanCount)}</strong></article><article className="metric glass"><small>مجموع مبلغ (ریال)</small><strong>{fa(loanTotal)}</strong></article></div><div className="table-wrap"><table><thead><tr><th>واحد سازمانی</th><th>نوع وام</th><th>تعداد دریافت‌کننده</th><th>مبلغ کل (ریال)</th></tr></thead><tbody>{loanRows.map((row,i)=><tr key={i}><td>{row.unit}</td><td>{row.kind}</td><td>{fa(row.count)}</td><td>{fa(row.amount)}</td></tr>)}</tbody></table></div></section>}
+        {view === 'گزارش و ارائه' && <section className="panel glass" id="report-builder"><div className="panel-head"><div><h2>ساخت گزارش مدیریتی</h2><p>بخش‌های موردنیاز را انتخاب کنید؛ خروجی‌ها از همین انتخاب ساخته می‌شوند.</p></div><Presentation/></div><div className="report-checks">{reportOptions.map(o=><label key={o.id}><input type="checkbox" checked={reportChecks.includes(o.id)} onChange={e=>setReportChecks(old=>e.target.checked?[...old,o.id]:old.filter(x=>x!==o.id))}/>{o.label}</label>)}</div><div className="report-actions"><button className="export" onClick={download}><FileSpreadsheet size={16}/>دریافت Excel</button><button className="export" onClick={makeSlides}><Presentation size={16}/>دریافت PowerPoint</button><button className="icon-button" onClick={()=>importRef.current?.click()}><FileUp size={16}/>ورود فایل CSV</button><input ref={importRef} hidden type="file" accept=".csv,text/csv" onChange={e=>importFile(e.target.files?.[0])}/></div>{importMessage&&<p role="status" className="map-search-status">{importMessage}</p>}{importedRows.length>0&&<div className="table-wrap"><table><tbody>{importedRows.slice(0,12).map((row,i)=><tr key={i}>{row.slice(0,8).map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}</section>}
         {view === 'سرویس کارکنان' && <div id="service-map" tabIndex={-1}><ServiceMap/></div>}
         {view === 'حضور و کارکرد' && <section className="cards">{attendance.map(({ id, name, value, unit, icon: Icon }) => <article className="metric glass" id={id} tabIndex={-1} key={id}><div className="metric-top"><span className="metric-icon rose"><Icon size={21}/></span>{name}</div><strong>{fa(value)}</strong><small>{unit} · منبع تعریف‌شده در اکسل: کسری</small></article>)}</section>}
         {view === 'منابع داده' && <section className="panel glass catalog" id="catalog" tabIndex={-1}><div className="panel-head"><div><h2>کاتالوگ داده‌ها</h2><p>{fa(shownSources.length)} فیلد · اتصال‌ها در انتظار تکمیل</p></div><span className="panel-icon"><Database size={19}/></span></div><div className="catalog-filters"><input id="catalog-filters" aria-label="جست‌وجوی فیلدها" placeholder="جست‌وجو در فیلدها…" value={query} onChange={event => setQuery(event.target.value)}/><select aria-label="مرجع داده" value={source} onChange={event => setSource(event.target.value)}><option value="">همه مراجع</option>{sourceGroups.map(group => <option key={group}>{group}</option>)}</select></div><div className="table-wrap"><table><thead><tr><th>فیلد</th><th>مرجع</th><th>روش دریافت / تیم</th></tr></thead><tbody>{shownSources.map(row => <tr key={row.field}><td>{row.field}</td><td>{row.source || '—'}</td><td>{row.method || '—'}</td></tr>)}</tbody></table>{shownSources.length === 0 && <p className="empty">فیلدی با این جست‌وجو پیدا نشد.</p>}</div></section>}
         <footer><span>دیدار · منابع انسانی الکتروکویر</span><button onClick={() => go('منابع داده')}>مراجع داده <ArrowLeft size={13}/></button></footer>
       </main>
+      {notifications && <div className="notification-popover"><strong>یادآورهای تقویم</strong>{calendarNotifications.length ? <ul>{calendarNotifications.map((item,i)=><li key={i}>{item}</li>)}</ul> : <p>یادآور ثبت‌نشده‌ای در این مرورگر وجود ندارد. برای افزودن رویداد، تقویم شمسی را باز کنید.</p>}<button className="icon-button" onClick={()=>{setNotifications(false);go('تقویم شمسی')}}>رفتن به تقویم</button></div>}
       {help && <div className="modal-backdrop" onClick={() => setHelp(false)}><section className="modal glass" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><div className="panel-head"><h2 id="help-title">راهنمای داشبورد</h2><button autoFocus className="icon-button" aria-label="بستن" onClick={() => setHelp(false)}><X size={20}/></button></div><p>از منوی بالای صفحه یا نمودار شعب، تهران و یزد را فیلتر کنید. خروجی CSV براساس نمای فعلی تهیه می‌شود.</p><p>شاخص‌ها با داده‌های نمایشی نمایش داده می‌شوند. فهرست منابع و روش دریافت آن‌ها در بخش «منابع داده» آمده است.</p></section></div>}
     </div>
   )
