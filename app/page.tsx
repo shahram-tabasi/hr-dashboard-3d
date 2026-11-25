@@ -131,7 +131,7 @@ export default function Dashboard() {
     return sheets
   }, [reportChecks, data, city, attendance, loanRows, shownSources])
   function download() { exportExcel(reportSheets.length ? reportSheets : [{name:'گزارش',rows:[['پیام'],['ابتدا حداقل یک گزارش انتخاب کنید']]}]) }
-  function makeSlides() { exportPowerPoint(reportSheets.map(sheet=>({title:sheet.name,lines:sheet.rows.slice(1,11).map(row=>row.map(String).join('  |  '))}))) }
+  function makeSlides() { if (!reportSheets.length) return; exportPowerPoint(reportSheets.map(sheet=>({title:sheet.name,lines:sheet.rows.slice(1,11).map(row=>row.map(String).join('  |  '))}))) }
   async function uploadProfile(file?: File) {
     if (!file) return
     if (!file.type.startsWith('image/') || file.size > 5*1024*1024) { setImportMessage('تصویر باید حداکثر ۵ مگابایت باشد.'); return }
