@@ -2,6 +2,21 @@
 
 داشبورد فارسی و راست‌چین Next.js برای ارائه، با دادهٔ نمونهٔ ۴۰۰ نفر در تهران و یزد.
 
+## استقرار با Docker Compose
+
+روی سرور، Docker Engine و افزونهٔ Docker Compose لازم است. Node.js و npm داخل تصویر نصب هستند.
+
+```bash
+docker compose up -d --build --wait
+docker compose ps
+```
+
+داشبورد روی پورت ۳۰۰۰ در دسترس است. برای انتخاب پورت دیگری می‌توانید فرمان را به شکل `DASHBOARD_PORT=8080 docker compose up -d --build --wait` اجرا کنید. برای مشاهدهٔ لاگ از `docker compose logs -f dashboard` استفاده کنید.
+
+برای به‌روزرسانی، `git pull --ff-only origin main` و سپس همان فرمان `docker compose up` را اجرا کنید. برای استفاده از قابلیت نقشهٔ آفلاین در مرورگر راه دور، داشبورد را با HTTPS ارائه کنید یا از تونل SSH و نشانی `http://localhost:3000` استفاده کنید.
+
+## اجرای محلی برای توسعه
+
 ```bash
 npm ci
 npm run dev -- --hostname 0.0.0.0
