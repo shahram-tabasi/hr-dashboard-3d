@@ -53,7 +53,7 @@ const nav = [
   ] },
   { id: 'reports', title: 'خروجی', icon: Files, sections: [] },
   { id: 'planner', title: 'تقویم شمسی', icon: CalendarDays, sections: [{ id: 'daily-planner', label: 'برنامهٔ روزانه' }] },
-  { id: 'inbox', title: 'کارتابل منابع انسانی', icon: Inbox, sections: [] },
+  { id: 'inbox', title: 'صندوق انتقادات و پیشنهادات', icon: Inbox, sections: [] },
   { id: 'assistant', title: 'دستیار منابع انسانی', icon: Bot, sections: [] },
   { id: 'data', title: 'منابع داده', icon: Database, sections: [
     { id: 'catalog', label: 'کاتالوگ داده‌ها' },
@@ -260,13 +260,13 @@ export default function Dashboard() {
             }}><Settings2 size={16}/>{editingOverview ? 'پایان ویرایش' : 'ویرایش صفحه'}</button>}
             <span className="topbar-user">{userName}</span>
             <PlannerBell openCalendar={() => go('تقویم شمسی')}/>
-            {view !== 'کارتابل منابع انسانی' && view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
-            {view !== 'کارتابل منابع انسانی' && view !== 'خروجی' && <button className="export" aria-label="خروجی گزارش" onClick={() => go('خروجی')}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
+            {view !== 'صندوق انتقادات و پیشنهادات' && view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
+            {view !== 'صندوق انتقادات و پیشنهادات' && view !== 'خروجی' && <button className="export" aria-label="خروجی گزارش" onClick={() => go('خروجی')}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
           </div>
         </header>
 
         {view === 'نمای کلی' && <div className="page-intro overview-intro"><div><h1>داشبورد منابع انسانی</h1><p>الکتروکویر · تهران و یزد</p></div><span className="demo"><i/>داده‌های نمایشی</span></div>}
-        {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'کارتابل منابع انسانی' ? 'دریافت و بررسی پیام‌های کارکنان' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
+        {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'صندوق انتقادات و پیشنهادات' ? 'دریافت و بررسی پیام‌های کارکنان' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
 
         {view === 'نمای کلی' && <OverviewLayout editing={editingOverview} addRequest={addModule} modules={{
           ...Object.fromEntries((Object.keys(chartLabels) as ChartId[]).map(id => [id, <AnalyticsChart key={id} id={id} people={employees} routes={overviewRoutes} embedded/>])),
@@ -315,7 +315,7 @@ export default function Dashboard() {
         {view === 'وام‌های کارکنان' && <PeopleReports key={'loans-' + city} city={city} mode="loans"/>}
 
 
-        {view === 'کارتابل منابع انسانی' && <FeedbackInbox/>}
+        {view === 'صندوق انتقادات و پیشنهادات' && <FeedbackInbox/>}
         {view === 'دستیار منابع انسانی' && <HRAssistant/>}
         {view === 'خروجی' && <ReportCenter sections={reportSections}/>}
         {view === 'تقویم شمسی' && <div id="daily-planner" tabIndex={-1}><Planner/></div>}

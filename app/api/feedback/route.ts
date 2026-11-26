@@ -8,11 +8,11 @@ const json = (value: unknown, status = 200) => Response.json(value, { status, he
 
 function authorization(request: Request) {
   const secret = process.env.HR_INBOX_PASSWORD
-  if (!secret) return json({ error: 'رمز کارتابل هنوز روی سرور تنظیم نشده است.' }, 503)
+  if (!secret) return json({ error: 'رمز صندوق هنوز روی سرور تنظیم نشده است.' }, 503)
   const auth = request.headers.get('authorization') ?? ''
   const supplied = auth.startsWith('Bearer ') ? auth.slice(7) : ''
   const hash = (value: string) => createHash('sha256').update(value).digest()
-  if (!supplied || !timingSafeEqual(hash(supplied), hash(secret))) return json({ error: 'رمز کارتابل درست نیست.' }, 401)
+  if (!supplied || !timingSafeEqual(hash(supplied), hash(secret))) return json({ error: 'رمز صندوق درست نیست.' }, 401)
 }
 
 async function readBody(request: Request) {
@@ -55,7 +55,7 @@ export function GET(request: Request) {
   if (failure) return failure
   const before = Number(new URL(request.url).searchParams.get('before') ?? Number.MAX_SAFE_INTEGER)
   if (!Number.isSafeInteger(before) || before < 1) return json({ error: 'شمارهٔ صفحه معتبر نیست.' }, 400)
-  try { return json(listFeedback(before)) } catch { return json({ error: 'کارتابل در دسترس نیست.' }, 503) }
+  try { return json(listFeedback(before)) } catch { return json({ error: 'صندوق در دسترس نیست.' }, 503) }
 }
 
 export async function PATCH(request: Request) {

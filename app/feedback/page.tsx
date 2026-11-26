@@ -42,7 +42,7 @@ export default function FeedbackPage() {
     <section className="panel glass">
       <div className="panel-head"><div><h1>صندوق انتقادات و پیشنهادات</h1><p>پیام شما برای واحد منابع انسانی ارسال می‌شود.</p></div><span className="panel-icon"><MessageSquare size={20}/></span></div>
       {sent ? <div className="feedback-success" role="status">
-        <CheckCircle2 size={30}/><strong>پیام در کارتابل منابع انسانی ثبت شد.</strong>
+        <CheckCircle2 size={30}/><strong>پیام در صندوق دیدار ثبت شد.</strong>
         <button className="icon-button" onClick={() => setSent(false)}>نوشتن پیام دیگر</button>
       </div> : <form className="feedback-form" onSubmit={send}>
         <label>نام و نام خانوادگی <small>اختیاری</small><input value={name} maxLength={100} onChange={event => setName(event.target.value)} placeholder="برای ارسال بدون نام، این قسمت را خالی بگذارید"/></label>
