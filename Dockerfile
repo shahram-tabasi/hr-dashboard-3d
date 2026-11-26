@@ -1,4 +1,4 @@
-ARG NODE_IMAGE=node:24-bookworm-slim
+ARG NODE_IMAGE=registry.simorghai.com/docker-proxy/library/node:24-bookworm-slim
 
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
