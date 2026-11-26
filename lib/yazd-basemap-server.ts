@@ -16,22 +16,47 @@ type OsmElement = {
   tags?: Record<string, string>
 }
 
-const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter']
+type Failure = { provider: string; reason: string }
+
+export class YazdMapUnavailable extends Error {
+  constructor(public readonly failures: Failure[]) {
+    super('OpenStreetMap data providers unavailable')
+  }
+}
+
+function errorCode(error: unknown) {
+  const cause = error instanceof Error && error.cause && typeof error.cause === 'object' ? error.cause : null
+  const value = cause && 'code' in cause ? cause.code : error instanceof Error ? error.name : 'NetworkError'
+  return typeof value === 'string' && /^[a-zA-Z0-9_]{1,48}$/.test(value) ? value : 'NetworkError'
+}
 let latest: Basemap | undefined
 let refreshed = 0
 let inFlight: Promise<Basemap> | undefined
 
 async function downloadBasemap(): Promise<Basemap> {
   const params = new URLSearchParams({ data: query })
+  const failures: Failure[] = []
   for (const endpoint of endpoints) {
+    const provider = new URL(endpoint).hostname
     try {
       const response = await fetch(endpoint + '?' + params, { signal: AbortSignal.timeout(42000), cache: 'no-store' })
-      if (!response.ok) continue
-      const data: { elements?: OsmElement[]; remark?: string; osm3s?: { timestamp_osm_base?: string } } = await response.json()
-      return parseBasemap(data)
-    } catch { /* Try the second OpenStreetMap data provider. */ }
+      if (!response.ok) {
+        failures.push({ provider, reason: 'HTTP ' + response.status })
+        await response.body?.cancel().catch(() => {})
+        continue
+      }
+      try {
+        return parseBasemap(await response.json())
+      } catch {
+        failures.push({ provider, reason: 'IncompleteData' })
+      }
+    } catch (error) {
+      failures.push({ provider, reason: errorCode(error) })
+    }
   }
-  throw new Error('OpenStreetMap data providers unavailable')
+  console.warn('[yazd-map] Overpass providers unavailable:', failures.map(({ provider, reason }) => provider + ' ' + reason).join(', '))
+  throw new YazdMapUnavailable(failures)
 }
 
 function parseBasemap(data: { elements?: OsmElement[]; remark?: string; osm3s?: { timestamp_osm_base?: string } }): Basemap {

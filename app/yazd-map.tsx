@@ -43,6 +43,7 @@ export default function YazdMap({ mapStyle, basemap, routes, selected, editing, 
   const click = useRef(onAddPoint)
   const move = useRef(onMovePoint)
   const [tileError, setTileError] = useState(false)
+  const [tileReady, setTileReady] = useState(false)
 
   useEffect(() => { click.current = onAddPoint; move.current = onMovePoint }, [onAddPoint, onMovePoint])
 
@@ -72,9 +73,11 @@ export default function YazdMap({ mapStyle, basemap, routes, selected, editing, 
   useEffect(() => {
     const instance = map.current
     setTileError(false)
+    setTileReady(false)
     if (!instance || mapStyle === 'offline') return
     const style = rasterStyles[mapStyle]
     const tiles = L.tileLayer(style.url, { attribution: style.attribution, maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin' })
+    tiles.once('tileload', () => setTileReady(true))
     tiles.on('tileerror', () => setTileError(true))
     tiles.addTo(instance)
     return () => { tiles.remove() }
@@ -144,7 +147,7 @@ export default function YazdMap({ mapStyle, basemap, routes, selected, editing, 
   }, [address])
 
   return <>
-    <div ref={container} data-map-style={mapStyle} className={editing ? 'live-map editing' : 'live-map'} aria-label="نقشهٔ خیابانی یزد و مسیرهای سرویس" />
-    {tileError && <p className="map-search-status" role="status">بخشی از لایهٔ آنلاین بارگیری نشد. دادهٔ آفلاین و مسیرها روی نقشه باقی می‌مانند.</p>}
+    <div ref={container} data-map-style={mapStyle} data-online-layer={tileReady && !tileError ? 'ready' : undefined} className={editing ? 'live-map editing' : 'live-map'} aria-label="نقشهٔ خیابانی یزد و مسیرهای سرویس" />
+    {tileError && <p className="map-search-status" role="status">تصاویر نقشه از سرویس انتخاب‌شده کامل بارگیری نشدند. دادهٔ محلی و مسیرها روی نقشه باقی مانده‌اند.</p>}
   </>
 }

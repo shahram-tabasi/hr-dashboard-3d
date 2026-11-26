@@ -6,6 +6,7 @@ services:
       args:
         NODE_IMAGE: "${NODE_IMAGE:-node:24-bookworm-slim}"
     environment:
+      NODE_USE_ENV_PROXY: "1"
       FEEDBACK_PUBLIC_PORT: "${FEEDBACK_PORT:-3001}"
       FEEDBACK_PUBLIC_URL: "${FEEDBACK_PUBLIC_URL:-}"
       FEEDBACK_DATA_DIR: /app/data

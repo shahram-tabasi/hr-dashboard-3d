@@ -55,7 +55,13 @@ async function saveBasemap(basemap: Basemap) {
 
 export async function updateBasemap() {
   const response = await fetch('/api/yazd-map', { method: 'POST', signal: AbortSignal.timeout(95000) })
-  if (!response.ok) throw new Error('Map download failed')
+  if (!response.ok) {
+    const result = await response.json().catch(() => null)
+    const diagnostics = Array.isArray(result?.failures)
+      ? result.failures.map(({ provider, reason }: { provider: string; reason: string }) => provider + ' · ' + reason).join(' / ')
+      : ''
+    throw new Error(diagnostics || 'HTTP ' + response.status)
+  }
   const basemap: Basemap = await response.json()
   if (!basemap.roads.length) throw new Error('No streets returned')
   return saveBasemap(basemap)

@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import DidarMark from './didar-mark'
 import FeedbackInbox from './feedback-inbox'
 import dynamic from 'next/dynamic'
 import Sky from './sky'
@@ -17,7 +18,7 @@ import { readRoutes } from '../lib/service-routes'
 import { readTasks } from '../lib/planner-data'
 import type { ReportSection } from '../lib/reports'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, Inbox, LayoutDashboard, MapPin, MessageSquare, Menu, PanelRightClose, PanelRightOpen, Plus, RotateCcw, Settings2, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, Inbox, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Plus, RotateCcw, Settings2, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { cities, getDashboard, type City } from '../lib/dashboard'
 import sources from '../lib/sources.json'
 
@@ -211,7 +212,7 @@ export default function Dashboard() {
         <svg className="sidebar-outline outline-compact" viewBox="0 0 76 852" preserveAspectRatio="none" aria-hidden="true">
           <path d="M24 1 H54 C68 1 75 8 75 22 V830 C75 844 68 851 54 851 H24 C9 851 1 837 2.5 809 C9 562 9 280 2.5 43 C1 15 9 1 24 1 Z" />
         </svg>
-        <div className="brand"><div className="brand-identity"><span className="brand-icon"><MessageSquare className="didar-mark" size={24} aria-hidden="true"/></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
+        <div className="brand"><div className="brand-identity"><DidarMark/><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
         <Profile/>
         <div className="nav-label">فضای کاری</div>
         <nav id="dashboard-navigation" aria-label="ناوبری اصلی">

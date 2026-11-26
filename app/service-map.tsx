@@ -16,11 +16,21 @@ export default function ServiceMap() {
   const [status, setStatus] = useState('')
   const active = draft ?? routes[selected]
 
-  const [mapStyle, setMapStyle] = useState<MapStyle>('offline')
+  const [mapStyle, setMapStyle] = useState<MapStyle | 'auto'>('auto')
+  const [online, setOnline] = useState(false)
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine)
+    sync()
+    window.addEventListener('online', sync)
+    window.addEventListener('offline', sync)
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync) }
+  }, [])
   const [basemap, setBasemap] = useState<Basemap | null>(null)
+  const currentStyle = mapStyle === 'auto' ? online ? 'streets' : 'offline' : mapStyle
   const [updating, setUpdating] = useState(false)
   const [importing, setImporting] = useState(false)
   const [updateMessage, setUpdateMessage] = useState('')
+  const [updateError, setUpdateError] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -32,13 +42,15 @@ export default function ServiceMap() {
 
   async function refreshMap() {
     setUpdating(true)
+    setUpdateError('')
     setUpdateMessage('در حال دریافت خیابان‌های یزد…')
     try {
       const result = await updateBasemap()
       setBasemap(result.basemap)
       setUpdateMessage(result.saved ? 'نقشه برای استفادهٔ آفلاین ذخیره شد.' : 'نقشه دریافت شد. مرورگر اجازهٔ ذخیرهٔ آفلاین نداد.')
-    } catch {
-      setUpdateMessage('سرویس آنلاین در دسترس نیست. نقشهٔ آفلاین فعلی حفظ شد. برای افزودن خطوط خیابان‌ها می‌توانید فایل GeoJSON وارد کنید.')
+    } catch (error) {
+      setUpdateMessage('دریافت فایل خیابان‌ها از Overpass انجام نشد. لایهٔ فعلی و مسیرها در دسترس‌اند.')
+      if (error instanceof Error) setUpdateError(error.message)
     } finally {
       setUpdating(false)
     }
@@ -49,6 +61,7 @@ export default function ServiceMap() {
     event.target.value = ''
     if (!file) return
     setImporting(true)
+    setUpdateError('')
     try {
       const result = await importYazdMap(file)
       setBasemap(result.basemap)
@@ -134,7 +147,8 @@ export default function ServiceMap() {
   return <div className="hr-analytics"><section className="panel glass service-panel" id="service-map" tabIndex={-1}>
     <div className="panel-head"><div><h2>نقشهٔ سرویس‌های یزد</h2><p>۷ خط نمونه · مسیرها و تعداد نفرات قابل ویرایش</p></div>
       <div className="map-import-actions">
-        <label className="select">لایهٔ نقشه<select aria-label="لایهٔ نقشه یزد" value={mapStyle} onChange={event => setMapStyle(event.target.value as MapStyle)}>
+        <label className="select">لایهٔ نقشه<select aria-label="لایهٔ نقشه یزد" value={mapStyle} onChange={event => setMapStyle(event.target.value as MapStyle | 'auto')}>
+          <option value="auto">خودکار · خیابانی هنگام اتصال</option>
           {Object.entries(mapStyles).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
         </select></label>
         <button className="icon-button" onClick={refreshMap} disabled={updating || importing}><RefreshCw size={15}/>{updating ? 'در حال دریافت…' : 'به‌روزرسانی آنلاین'}</button>
@@ -143,8 +157,9 @@ export default function ServiceMap() {
         </label>
       </div>
     </div>
-    {basemap && <p className="map-search-status">{basemap.roads.length ? 'نقشهٔ خطی آفلاین · ' + fa(basemap.roads.length) + ' قطعهٔ خیابان' : 'نمای آفلاین نقطه‌ای: مرکز قطعات خیابان و جست‌وجوی نام‌ها'}</p>}
+    {basemap && <p className="map-search-status">{basemap.roads.length ? 'نقشهٔ خطی آفلاین · ' + fa(basemap.roads.length) + ' قطعهٔ خیابان' : 'دادهٔ محلی: مرکز قطعات خیابان و جست‌وجوی نام‌ها'}</p>}
     {updateMessage && <p className="map-search-status" role="status">{updateMessage}</p>}
+    {updateError && <code className="map-search-status map-diagnostics" dir="ltr">{updateError}</code>}
     <div className="service-layout">
       <div>
         <form className="map-search" onSubmit={search}>
@@ -159,7 +174,7 @@ export default function ServiceMap() {
           </li>)}
         </ul>}
         <div className="route-map">
-          <YazdMap mapStyle={mapStyle} basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
+          <YazdMap mapStyle={currentStyle} basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
         </div>
         <a className="map-link" href="https://www.openstreetmap.org/#map=13/31.897/54.367" target="_blank" rel="noreferrer">باز کردن یزد در OpenStreetMap <ExternalLink size={13}/></a>
       </div>
