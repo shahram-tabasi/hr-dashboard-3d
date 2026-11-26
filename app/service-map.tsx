@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import YazdMap from './yazd-map'
+import AnalyticsChart from './analytics-charts'
 import { readRoutes, routeStorageKey, routeColors as colors, type Route } from '../lib/service-routes'
 import { readBasemap, searchBasemap, updateBasemap, type Address, type Basemap, type Point } from '../lib/yazd-basemap'
 import { ExternalLink, MapPin, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react'
@@ -114,7 +115,7 @@ export default function ServiceMap() {
     setDraft(null)
   }
 
-  return <section className="panel glass service-panel">
+  return <div className="hr-analytics"><section className="panel glass service-panel" id="service-map" tabIndex={-1}>
     <div className="panel-head"><div><h2>نقشهٔ سرویس‌های یزد</h2><p>۷ خط نمونه · مسیرها و تعداد نفرات قابل ویرایش</p></div><button className="export" onClick={refreshMap} disabled={updating}><RefreshCw size={15}/>به‌روزرسانی نقشه</button></div>
     {(updateMessage || basemap) && <p className="map-search-status" role="status">{updateMessage || ('نسخهٔ ذخیره‌شده · ' + new Date(basemap!.updatedAt).toLocaleDateString('fa-IR'))}</p>}
     <div className="service-layout">
@@ -175,5 +176,5 @@ export default function ServiceMap() {
         <p className="route-status" role="status">{status}</p>
       </div>
     </div>
-  </section>
+  </section><AnalyticsChart id="transport-chart" routes={routes}/></div>
 }

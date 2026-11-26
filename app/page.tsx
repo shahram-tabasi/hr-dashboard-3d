@@ -4,7 +4,9 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import Sky from './sky'
 import PeopleReports from './people-reports'
-import OverviewLayout from './overview-layout'
+import OverviewLayout, { dragType, moduleForSection } from './overview-layout'
+import AnalyticsChart, { chartLabels, type ChartId } from './analytics-charts'
+import type { Route } from '../lib/service-routes'
 import HRAssistant from './hr-assistant'
 import { peopleAt, sum, unitStats } from '../lib/people'
 import PlannerBell from './planner-bell'
@@ -29,11 +31,24 @@ const nav = [
   ] },
   { id: 'workforce', title: 'نیروی انسانی', icon: Users, sections: [
     { id: 'org-chart', label: 'چارت سازمانی' },
+    { id: 'gender-chart', label: chartLabels['gender-chart'] },
+    { id: 'workforce-summary', label: 'جدول کارکنان واحدها' },
   ] },
-  { id: 'finance', title: 'مالی', icon: Banknote, sections: [] },
-  { id: 'attendance', title: 'مرخصی و کارکرد', icon: Clock3, sections: [] },
-  { id: 'transport', title: 'سرویس کارکنان', icon: BusFront, sections: [{ id: 'service-map', label: 'نقشهٔ سرویس‌های یزد' }] },
-  { id: 'loans', title: 'وام‌های کارکنان', icon: Banknote, sections: [] },
+  { id: 'finance', title: 'مالی', icon: Banknote, sections: [
+    { id: 'pay-chart', label: chartLabels['pay-chart'] },
+    { id: 'grade-chart', label: chartLabels['grade-chart'] },
+    { id: 'finance-summary', label: 'دریافتی و رتبه‌ها' },
+  ] },
+  { id: 'attendance', title: 'مرخصی و کارکرد', icon: Clock3, sections: [
+    { id: 'attendance-chart', label: chartLabels['attendance-chart'] },
+    { id: 'attendance-summary', label: 'شاخص‌ها و فهرست مرخصی' },
+  ] },
+  { id: 'transport', title: 'سرویس کارکنان', icon: BusFront, sections: [{ id: 'service-map', label: 'نقشهٔ سرویس‌های یزد' }, { id: 'transport-chart', label: chartLabels['transport-chart'] }] },
+  { id: 'loans', title: 'وام‌های کارکنان', icon: Banknote, sections: [
+    { id: 'loan-chart', label: chartLabels['loan-chart'] },
+    { id: 'loan-timeline', label: chartLabels['loan-timeline'] },
+    { id: 'loans-summary', label: 'گزارش وام به تفکیک واحد' },
+  ] },
   { id: 'reports', title: 'خروجی', icon: Files, sections: [] },
   { id: 'planner', title: 'تقویم شمسی', icon: CalendarDays, sections: [{ id: 'daily-planner', label: 'برنامهٔ روزانه' }] },
   { id: 'assistant', title: 'دستیار منابع انسانی', icon: Bot, sections: [] },
@@ -52,6 +67,9 @@ export default function Dashboard() {
   const [view, setView] = useState<View>('نمای کلی')
   const [menu, setMenu] = useState(false)
   const [expanded, setExpanded] = useState<View | null>('نمای کلی')
+  const [editingOverview, setEditingOverview] = useState(false)
+  const [addModule, setAddModule] = useState<{ id: string } | null>(null)
+  const [overviewRoutes, setOverviewRoutes] = useState<Route[]>([])
   const [destination, setDestination] = useState<{ id: string } | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const toggleLabel = collapsed ? 'باز کردن نوار کناری' : 'جمع کردن نوار کناری'
@@ -93,16 +111,33 @@ export default function Dashboard() {
   }, [help])
 
   useEffect(() => {
-    if (!destination) return
-    const section = document.getElementById(destination.id)
-    section?.focus({ preventScroll: true })
-    section?.scrollIntoView({ block: 'nearest' })
+    if (view === 'نمای کلی') setOverviewRoutes(readRoutes())
+  }, [view])
+
+  useEffect(() => {
+    const id = destination?.id
+    if (!id) return
+    function jump() {
+      const section = document.getElementById(id!)
+      if (!section) return false
+      section.focus({ preventScroll: true })
+      section.scrollIntoView({ block: 'start' })
+      return true
+    }
+    if (jump()) return
+    const observer = new MutationObserver(() => { if (jump()) observer.disconnect() })
+    observer.observe(document.querySelector('main')!, { childList: true, subtree: true })
+    const timeout = window.setTimeout(() => observer.disconnect(), 4000)
+    return () => { observer.disconnect(); window.clearTimeout(timeout) }
   }, [destination])
 
   function go(next: View, section?: string) {
     setView(next)
     setDestination(section ? { id: section } : null)
     setMenu(false)
+    if (next !== 'نمای کلی') setEditingOverview(false)
+    const module = next === 'نمای کلی' && section ? moduleForSection(section) : undefined
+    setAddModule(module ? { id: module } : null)
   }
 
   function reportSections(): ReportSection[] {
@@ -144,7 +179,16 @@ export default function Dashboard() {
                 {sections.length > 0 && <button className="submenu-toggle" aria-label={'زیرمنوی ' + title} aria-expanded={expanded === title} aria-controls={'submenu-' + id} onClick={() => setExpanded(expanded === title ? null : title)}><ChevronDown size={15}/></button>}
               </div>
               {sections.length > 0 && <ul className="submenu" id={'submenu-' + id} hidden={expanded !== title}>
-                {sections.map(section => <li key={section.id}><button onClick={() => go(title, section.id)}>{section.label}</button></li>)}
+                {sections.map(section => {
+                  const module = moduleForSection(section.id)
+                  const canAdd = editingOverview && Boolean(module)
+                  return <li key={section.id} className={canAdd ? 'submenu-addable' : undefined}>
+                    <button draggable={canAdd} onDragStart={event => { if (canAdd && module) event.dataTransfer.setData(dragType, module) }} onClick={() => {
+                      if (canAdd && module) { setAddModule({ id: module }); setMenu(false) }
+                      else go(title, section.id)
+                    }}>{canAdd ? <span aria-hidden="true">＋ </span> : null}{section.label}</button>
+                  </li>
+                })}
               </ul>}
             </div>
           ))}
@@ -173,7 +217,14 @@ export default function Dashboard() {
         {view === 'نمای کلی' && <div className="page-intro overview-intro"><div><h1>داشبورد منابع انسانی</h1><p>الکتروکویر · تهران و یزد</p></div><span className="demo"><i/>داده‌های نمایشی</span></div>}
         {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
 
-        {view === 'نمای کلی' && <OverviewLayout modules={{
+        {view === 'نمای کلی' && <OverviewLayout editing={editingOverview} setEditing={setEditingOverview} addRequest={addModule} modules={{
+          ...Object.fromEntries((Object.keys(chartLabels) as ChartId[]).map(id => [id, <AnalyticsChart key={id} id={id} people={employees} routes={overviewRoutes} embedded/>])),
+          'org-chart': <section className="panel glass"><h2>چارت سازمانی</h2><div className="org-grid">{data.units.map(unit => <span key={unit.name} className="org-node">{unit.name}</span>)}</div><button className="icon-button" onClick={() => go('نیروی انسانی', 'org-chart')}>چارت کامل</button></section>,
+          'workforce-summary': <section className="panel glass"><h2>کارکنان واحدها</h2><div className="graph-legend">{data.units.map(unit => <span key={unit.name}>{unit.name} · {fa(unit.count)}</span>)}</div><button className="icon-button" onClick={() => go('نیروی انسانی', 'workforce-summary')}>جدول کامل</button></section>,
+          'service-map': <ServiceMap/>,
+          'daily-planner': <Planner/>,
+          catalog: <section className="panel glass"><h2>کاتالوگ داده‌ها</h2><p>{fa(sources.length)} فیلد · {fa(sourceGroups.length)} مرجع</p><button className="icon-button" onClick={() => go('منابع داده', 'catalog')}>فهرست مراجع</button></section>,
+          'catalog-filters': <section className="panel glass"><h2>جست‌وجوی فیلدها</h2><div className="catalog-filters"><input aria-label="جست‌وجو در کاتالوگ" value={query} onChange={event => setQuery(event.target.value)}/><button className="icon-button" onClick={() => go('منابع داده', 'catalog-filters')}>نمایش {fa(shownSources.length)} نتیجه</button></div></section>,
           metrics: <>          <div className="section-title" id="metrics" tabIndex={-1}><h2>شاخص‌های کلیدی</h2><span><Activity size={15}/> {city}</span></div>
           <section className="cards" aria-label="شاخص‌های کلیدی">
             {cards.map(({ title, value, icon: Icon, tone, note }) => <article className="metric glass" key={title}><div className="metric-top"><span className={'metric-icon ' + tone}><Icon size={21}/></span><span>{title}</span></div><strong>{fa(value)}</strong><small>{note}</small></article>)}
@@ -216,7 +267,7 @@ export default function Dashboard() {
         {view === 'دستیار منابع انسانی' && <HRAssistant/>}
         {view === 'خروجی' && <ReportCenter sections={reportSections}/>}
         {view === 'تقویم شمسی' && <div id="daily-planner" tabIndex={-1}><Planner/></div>}
-        {view === 'سرویس کارکنان' && <div id="service-map" tabIndex={-1}><ServiceMap/></div>}
+        {view === 'سرویس کارکنان' && <ServiceMap/>}
         {view === 'منابع داده' && <section className="panel glass catalog" id="catalog" tabIndex={-1}><div className="panel-head"><div><h2>کاتالوگ داده‌ها</h2><p>{fa(shownSources.length)} فیلد · اتصال‌ها در انتظار تکمیل</p></div><span className="panel-icon"><Database size={19}/></span></div><div className="catalog-filters"><input id="catalog-filters" aria-label="جست‌وجوی فیلدها" placeholder="جست‌وجو در فیلدها…" value={query} onChange={event => setQuery(event.target.value)}/><select aria-label="مرجع داده" value={source} onChange={event => setSource(event.target.value)}><option value="">همه مراجع</option>{sourceGroups.map(group => <option key={group}>{group}</option>)}</select></div><div className="table-wrap"><table><thead><tr><th>فیلد</th><th>مرجع</th><th>روش دریافت / تیم</th></tr></thead><tbody>{shownSources.map(row => <tr key={row.field}><td>{row.field}</td><td>{row.source || '—'}</td><td>{row.method || '—'}</td></tr>)}</tbody></table>{shownSources.length === 0 && <p className="empty">فیلدی با این جست‌وجو پیدا نشد.</p>}</div></section>}
         <footer><span>دیدار · منابع انسانی الکتروکویر</span><button onClick={() => go('منابع داده')}>مراجع داده <ArrowLeft size={13}/></button></footer>
       </main>

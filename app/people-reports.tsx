@@ -1,5 +1,6 @@
 'use client'
 
+import AnalyticsChart, { type ChartId } from './analytics-charts'
 import { useState, type ReactNode } from 'react'
 import { ArrowLeft, Banknote, GitBranch, Users } from 'lucide-react'
 import type { City } from '../lib/dashboard'
@@ -7,6 +8,10 @@ import { horizonCounts, horizons, loanTypes, money as fa, orgUnits, peopleAt, pe
 
 type Cell = ReactNode
 type Mode = 'workforce' | 'finance' | 'attendance' | 'loans'
+const chartGroups: Record<Mode, ChartId[]> = {
+  workforce: ['gender-chart'], finance: ['pay-chart', 'grade-chart'],
+  attendance: ['attendance-chart'], loans: ['loan-chart', 'loan-timeline'],
+}
 
 function Table({ columns, rows, empty = 'موردی در این انتخاب وجود ندارد.' }: { columns: string[]; rows: Cell[][]; empty?: string }) {
   return <div className="table-wrap"><table className="analytics-table">
@@ -50,7 +55,7 @@ export default function PeopleReports({ city, mode }: { city: City; mode: Mode }
   }
 
   return <div className="hr-analytics">
-    {mode === 'workforce' && <section className="panel glass org-flow" id="org-chart">
+    {mode === 'workforce' && <section className="panel glass org-flow" id="org-chart" tabIndex={-1}>
       <div className="panel-head"><div><h2>ساختار سازمانی الکتروکویر</h2><p>چارت ۱۴۰۵/۰۵/۰۴ · برای مشاهدهٔ اعضا، واحد را انتخاب کنید.</p></div><GitBranch size={20}/></div>
       <div className="org-root"><span>هیئت‌مدیره</span><ArrowLeft size={16}/><span>مدیرعامل</span></div>
       <div className="org-grid">{orgUnits.map(node => {
@@ -61,7 +66,8 @@ export default function PeopleReports({ city, mode }: { city: City; mode: Mode }
       })}</div>
     </section>}
 
-    <section className="panel glass">
+    {chartGroups[mode].map(id => <AnalyticsChart key={id} id={id} people={selected}/>)}
+    <section className="panel glass" id={mode + "-summary"} tabIndex={-1}>
       <div className="panel-head"><div><h2>{mode === 'workforce' ? 'پراکندگی کارکنان' : mode === 'finance' ? 'هزینه و دریافتی واحدها' : mode === 'loans' ? 'پوشش وام به تفکیک واحد' : 'وضعیت مرخصی و ورود'}</h2><p>دادهٔ نمونه · {city}</p></div><Users size={20}/></div>
       <div className="catalog-filters"><select aria-label="واحد سازمانی" value={unit} onChange={event => setUnit(event.target.value)}><option value="">همه واحدها</option>{units.map(row => <option key={row.name}>{row.name}</option>)}</select></div>
 
@@ -108,7 +114,7 @@ export default function PeopleReports({ city, mode }: { city: City; mode: Mode }
       </>}
     </section>
 
-    <section className="panel glass">
+    <section className="panel glass" id={mode + "-details"} tabIndex={-1}>
       <div className="panel-head"><div><h2>جزئیات کارکنان</h2><p>{unit || 'همه واحدها'} · {fa(matches.length)} نفر</p></div><button className="icon-button" aria-expanded={details} onClick={() => setDetails(!details)}>{details ? 'جمع کردن فهرست' : 'نمایش فهرست نفرات'}</button></div>
       {details && <>
         <div className="catalog-filters"><input aria-label="جست‌وجوی کارکنان" placeholder="نام، واحد یا تیم" value={query} onChange={event => setQuery(event.target.value)}/></div>
