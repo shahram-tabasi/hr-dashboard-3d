@@ -767,7 +767,6 @@ main [id] { scroll-margin-top: 24px; }
 .feedback-page { max-width: 690px; margin-inline: auto; padding: 30px 16px; }
 .feedback-navigation { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .feedback-navigation span { display: flex; gap: 9px; align-items: center; font-size: 19px; font-weight: 700; }
-.feedback-navigation img { background: #e1d2fa; border-radius: 8px; padding: 3px; }
 .feedback-page h1 { margin: 0; font-size: clamp(21px,4.5vw,33px); line-height: 1.4; }
 .feedback-form, .feedback-form label { display: grid; gap: 8px; }
 .feedback-form { gap: 15px; }
@@ -797,13 +796,10 @@ main [id] { scroll-margin-top: 24px; }
 .map-import:focus-within { outline: 2px solid #dbc8f7; outline-offset: 2px; }
 @media (max-width: 550px) { .service-panel .panel-head { align-items: start; flex-direction: column; } }
 
-.feedback-navigation .didar-mark { padding: 3px; color: #483667; border-radius: 8px; background: #d8c5f1; }
-.brand-icon .didar-mark { color: #493769; }
 .elektro-kavir-icon { background: linear-gradient(145deg, #e8dbf9, #ab94d5); }
 .route-map .leaflet-container { background: #242b3b; }
 .live-map[data-online-layer="ready"] .leaflet-streets-pane { visibility: hidden; }
 .map-diagnostics { display: block; text-align: left; overflow-wrap: anywhere; }
-.didar-logo-picker { position: relative; cursor: pointer; }
-.didar-logo-picker:focus-within { outline: 2px solid #e7d7fd; outline-offset: 3px; }
-.didar-logo-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.didar-logo-picker img { object-fit: contain; pointer-events: none; }
+
+.didar-company-mark img { object-fit: contain; filter: brightness(0) saturate(100%) invert(25%) sepia(19%) saturate(1688%) hue-rotate(227deg) brightness(92%); }
+.feedback-navigation .didar-company-mark { display: grid; place-items: center; }

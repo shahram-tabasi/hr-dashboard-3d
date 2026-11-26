@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import DidarMark from '../didar-mark'
 import { CheckCircle2, MessageSquare, Send } from 'lucide-react'
 
 export default function FeedbackPage() {
@@ -34,7 +35,7 @@ export default function FeedbackPage() {
 
   return <main className="feedback-page">
     <header className="feedback-navigation">
-      <span><MessageSquare size={25} className="didar-mark"/>دیدار</span>
+      <span><DidarMark/>دیدار</span>
     </header>
     <section className="panel glass">
       <div className="panel-head"><div><h1>صندوق انتقادات و پیشنهادات</h1><p>پیام شما برای واحد منابع انسانی ارسال می‌شود.</p></div><span className="panel-icon"><MessageSquare size={20}/></span></div>
