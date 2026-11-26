@@ -5,8 +5,9 @@ import { GripVertical, Trash2 } from 'lucide-react'
 import { chartLabels } from './analytics-charts'
 
 export const dragType = 'application/x-didar-module'
-const key = 'didar-overview-layout-v1'
-const initial = ['metrics', 'gender', 'charts']
+const previousKey = 'didar-overview-layout-v1'
+const key = 'didar-overview-layout-v2'
+const initial = ['metrics', 'gender', 'charts', 'service-map']
 const labels: Record<string, string> = {
   ...chartLabels,
   metrics: 'شاخص‌های کلیدی', gender: 'ترکیب کارکنان', charts: 'توزیع واحدها و شعب',
@@ -37,8 +38,13 @@ export default function OverviewLayout({ modules, editing, addRequest }: {
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(key) ?? 'null')
-      if (Array.isArray(saved)) setOrder([...new Set<string>(saved.filter(id => typeof id === 'string' && Object.hasOwn(labels, id)))])
+      const current = localStorage.getItem(key)
+      const saved = JSON.parse(current ?? localStorage.getItem(previousKey) ?? 'null')
+      if (Array.isArray(saved)) {
+        const known = saved.filter(id => typeof id === 'string' && Object.hasOwn(labels, id))
+        if (!current) known.push('service-map')
+        setOrder([...new Set<string>(known)])
+      }
     } catch { /* Use the default layout. */ }
     setReady(true)
   }, [])

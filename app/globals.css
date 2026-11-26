@@ -794,3 +794,9 @@ main [id] { scroll-margin-top: 24px; }
 .feedback-share > div { display: flex; gap: 7px; align-items: stretch; }
 .feedback-share input { flex: 1; width: 0; min-width: 0; padding: 6px 8px; border: 1px solid var(--edge); border-radius: 7px; background: #1b2031b2; color: var(--ink); font-size: 13px; }
 .feedback-share button { white-space: nowrap; }
+
+.map-import-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 5px; }
+.map-import { position: relative; cursor: pointer; }
+.map-import input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.map-import:focus-within { outline: 2px solid #dbc8f7; outline-offset: 2px; }
+@media (max-width: 550px) { .service-panel .panel-head { align-items: start; flex-direction: column; } }

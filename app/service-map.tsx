@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import YazdMap from './yazd-map'
 import AnalyticsChart from './analytics-charts'
 import { readRoutes, routeStorageKey, routeColors as colors, type Route } from '../lib/service-routes'
-import { readBasemap, searchBasemap, updateBasemap, type Address, type Basemap, type Point } from '../lib/yazd-basemap'
-import { ExternalLink, MapPin, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react'
+import { importYazdMap, readBasemap, searchBasemap, updateBasemap, type Address, type Basemap, type Point } from '../lib/yazd-basemap'
+import { ExternalLink, MapPin, Pencil, Plus, RefreshCw, Save, Search, Trash2, Upload, X } from 'lucide-react'
 
 const fa = (value: number) => value.toLocaleString('fa-IR')
 
@@ -18,12 +18,13 @@ export default function ServiceMap() {
 
   const [basemap, setBasemap] = useState<Basemap | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [updateMessage, setUpdateMessage] = useState('')
 
   useEffect(() => {
     let mounted = true
     readBasemap().then(saved => { if (mounted) setBasemap(saved) }).catch(() => {
-      if (mounted) setUpdateMessage('خواندن نقشهٔ ذخیره‌شده در این مرورگر ممکن نیست.')
+      if (mounted) setUpdateMessage('فایل محلی نقشه بارگیری نشد. می‌توانید فایل GeoJSON یزد را وارد کنید.')
     })
     return () => { mounted = false }
   }, [])
@@ -36,10 +37,24 @@ export default function ServiceMap() {
       setBasemap(result.basemap)
       setUpdateMessage(result.saved ? 'نقشه برای استفادهٔ آفلاین ذخیره شد.' : 'نقشه دریافت شد. مرورگر اجازهٔ ذخیرهٔ آفلاین نداد.')
     } catch {
-      setUpdateMessage('دریافت یا ذخیرهٔ نقشه انجام نشد. دسترسی سرور به سرویس OpenStreetMap را بررسی کنید.')
+      setUpdateMessage('سرویس آنلاین در دسترس نیست. نقشهٔ آفلاین فعلی حفظ شد. برای افزودن خطوط خیابان‌ها می‌توانید فایل GeoJSON وارد کنید.')
     } finally {
       setUpdating(false)
     }
+  }
+
+  async function importMap(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setImporting(true)
+    try {
+      const result = await importYazdMap(file)
+      setBasemap(result.basemap)
+      setUpdateMessage(result.saved ? 'خطوط خیابان‌های یزد برای استفادهٔ آفلاین ذخیره شد.' : 'فایل باز شد. مرورگر اجازهٔ ذخیرهٔ آفلاین نداد.')
+    } catch {
+      setUpdateMessage('فایل GeoJSON باید شامل خطوط خیابان در محدودهٔ یزد و حداکثر ۳۲ مگابایت باشد.')
+    } finally { setImporting(false) }
   }
 
   const [query, setQuery] = useState('')
@@ -116,8 +131,16 @@ export default function ServiceMap() {
   }
 
   return <div className="hr-analytics"><section className="panel glass service-panel" id="service-map" tabIndex={-1}>
-    <div className="panel-head"><div><h2>نقشهٔ سرویس‌های یزد</h2><p>۷ خط نمونه · مسیرها و تعداد نفرات قابل ویرایش</p></div><button className="export" onClick={refreshMap} disabled={updating}><RefreshCw size={15}/>به‌روزرسانی نقشه</button></div>
-    {(updateMessage || basemap) && <p className="map-search-status" role="status">{updateMessage || ('نسخهٔ ذخیره‌شده · ' + new Date(basemap!.updatedAt).toLocaleDateString('fa-IR'))}</p>}
+    <div className="panel-head"><div><h2>نقشهٔ سرویس‌های یزد</h2><p>۷ خط نمونه · مسیرها و تعداد نفرات قابل ویرایش</p></div>
+      <div className="map-import-actions">
+        <button className="icon-button" onClick={refreshMap} disabled={updating || importing}><RefreshCw size={15}/>{updating ? 'در حال دریافت…' : 'به‌روزرسانی آنلاین'}</button>
+        <label className="export map-import"><Upload size={15}/>{importing ? 'در حال واردکردن…' : 'ورود فایل GeoJSON'}
+          <input type="file" aria-label="ورود فایل نقشهٔ یزد" accept=".geojson,.json" disabled={updating || importing} onChange={importMap}/>
+        </label>
+      </div>
+    </div>
+    {basemap && <p className="map-search-status">{basemap.roads.length ? 'نقشهٔ خطی آفلاین · ' + fa(basemap.roads.length) + ' قطعهٔ خیابان' : 'نمای آفلاین نقطه‌ای: مرکز قطعات خیابان و جست‌وجوی نام‌ها'}</p>}
+    {updateMessage && <p className="map-search-status" role="status">{updateMessage}</p>}
     <div className="service-layout">
       <div>
         <form className="map-search" onSubmit={search}>

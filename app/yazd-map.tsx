@@ -59,6 +59,9 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
     layer.clearLayers()
     if (!basemap) return
     const renderer = L.canvas({ pane: 'streets', padding: .25 })
+    for (const point of basemap.roadCenters ?? []) {
+      L.circleMarker(point, { renderer, interactive: false, radius: 1.1, stroke: false, fillColor: '#a9b8d8', fillOpacity: .42 }).addTo(layer)
+    }
     for (const road of basemap.roads) {
       const major = /motorway|trunk|primary|secondary|tertiary/.test(road.kind)
       L.polyline(road.points, {
@@ -114,6 +117,5 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
 
   return <>
     <div ref={container} className={editing ? 'live-map editing' : 'live-map'} aria-label="نقشهٔ خیابانی یزد و مسیرهای سرویس" />
-    {!basemap && <p className="map-tile-error">برای دانلود اولیهٔ خیابان‌های یزد، «به‌روزرسانی نقشه» را بزنید.</p>}
   </>
 }

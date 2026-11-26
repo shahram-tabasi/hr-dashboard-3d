@@ -4,6 +4,7 @@ export type Basemap = {
   updatedAt: string
   roads: { points: Point[]; kind: string; name?: string }[]
   places: Address[]
+  roadCenters?: Point[]
 }
 
 const cacheName = 'didar-offline-yazd-v1'
@@ -23,26 +24,84 @@ function accessStore<T>(mode: IDBTransactionMode, operation: (store: IDBObjectSt
   })
 }
 
-export async function readBasemap(): Promise<Basemap | null> {
-  const saved = await accessStore<Basemap | undefined>('readonly', store => store.get(cacheEntry))
-  if (saved) return saved
-  if (!('caches' in window)) return null
-  const cache = await caches.open(cacheName)
-  const previous = await cache.match(cacheEntry)
-  return previous ? previous.json() : null
+export async function readBasemap(): Promise<Basemap> {
+  try {
+    const saved = await accessStore<Basemap | undefined>('readonly', store => store.get(cacheEntry))
+    if (saved?.roads.length) return saved
+  } catch { /* The bundled map works even when browser storage is unavailable. */ }
+  if ('caches' in window) {
+    try {
+      const cache = await caches.open(cacheName)
+      const previous = await cache.match(cacheEntry)
+      if (previous) {
+        const map: Basemap = await previous.json()
+        if (map.roads.length) return map
+      }
+    } catch { /* Continue with the bundled map. */ }
+  }
+  const response = await fetch('/maps/yazd-street-index.json')
+  if (!response.ok) throw new Error('Bundled map unavailable')
+  return response.json()
 }
 
-export async function updateBasemap(): Promise<{ basemap: Basemap; saved: boolean }> {
-  const response = await fetch('/api/yazd-map', { method: 'POST', signal: AbortSignal.timeout(95000) })
-  if (!response.ok) throw new Error('Map download failed')
-  const basemap: Basemap = await response.json()
-  if (!basemap.roads.length) throw new Error('No streets returned')
+async function saveBasemap(basemap: Basemap) {
   try {
     await accessStore('readwrite', store => store.put(basemap, cacheEntry))
     return { basemap, saved: true }
   } catch {
     return { basemap, saved: false }
   }
+}
+
+export async function updateBasemap() {
+  const response = await fetch('/api/yazd-map', { method: 'POST', signal: AbortSignal.timeout(95000) })
+  if (!response.ok) throw new Error('Map download failed')
+  const basemap: Basemap = await response.json()
+  if (!basemap.roads.length) throw new Error('No streets returned')
+  return saveBasemap(basemap)
+}
+
+type Geometry = { type?: string; coordinates?: unknown }
+
+function pointFromGeoJSON(coordinates: unknown): Point | null {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null
+  const [lng, lat] = coordinates
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? [lat, lng] : null
+}
+
+function inYazd([lat, lng]: Point) {
+  return lat >= 31.79 && lat <= 32.02 && lng >= 54.23 && lng <= 54.54
+}
+
+export async function importYazdMap(file: File) {
+  if (file.size > 32 * 1024 * 1024) throw new Error('Map file too large')
+  const source = JSON.parse(await file.text())
+  if (source?.type !== 'FeatureCollection' || !Array.isArray(source.features)) throw new Error('GeoJSON feature collection required')
+  const roads: Basemap['roads'] = []
+  const places: Address[] = []
+  for (const feature of source.features) {
+    const geometry: Geometry | undefined = feature?.geometry
+    const props = feature?.properties
+    const name = props?.['name:fa'] ?? props?.name
+    const label = typeof name === 'string' ? name : undefined
+    if (geometry?.type === 'Point' && label) {
+      const point = pointFromGeoJSON(geometry.coordinates)
+      if (point && inYazd(point)) places.push({ label, point })
+    }
+    if (geometry?.type === 'LineString' || geometry?.type === 'MultiLineString') {
+      const lines = geometry.type === 'LineString' ? [geometry.coordinates] : geometry.coordinates
+      if (!Array.isArray(lines)) continue
+      for (const line of lines) {
+        if (!Array.isArray(line)) continue
+        const points = line.map(pointFromGeoJSON)
+        if (points.length >= 2 && points.every(point => point !== null) && points.some(inYazd)) {
+          roads.push({ points, kind: typeof props?.highway === 'string' ? props.highway : 'road', name: label })
+        }
+      }
+    }
+  }
+  if (!roads.length) throw new Error('No street geometry in Yazd')
+  return saveBasemap({ updatedAt: new Date().toISOString(), roads, places })
 }
 
 function normalize(value: string) {
