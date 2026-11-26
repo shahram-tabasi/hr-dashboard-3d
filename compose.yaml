@@ -1,11 +1,13 @@
 services:
   dashboard:
+    image: "${COMPOSE_PROJECT_NAME}-dashboard"
     build:
       context: .
       args:
         NODE_IMAGE: "${NODE_IMAGE:-node:24-bookworm-slim}"
     environment:
-      HR_INBOX_PASSWORD: "${HR_INBOX_PASSWORD:-}"
+      FEEDBACK_PUBLIC_PORT: "${FEEDBACK_PORT:-3001}"
+      FEEDBACK_PUBLIC_URL: "${FEEDBACK_PUBLIC_URL:-}"
       FEEDBACK_DATA_DIR: /app/data
       LOCAL_MODEL_URL: "${LOCAL_MODEL_URL:-}"
       LOCAL_MODEL_NAME: "${LOCAL_MODEL_NAME:-}"
@@ -17,6 +19,27 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  feedback:
+    image: "${COMPOSE_PROJECT_NAME}-dashboard"
+    pull_policy: never
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    environment:
+      DIDAR_PUBLIC_FEEDBACK_ONLY: "1"
+      FEEDBACK_DATA_DIR: /app/data
+    volumes:
+      - feedback-data:/app/data
+    ports:
+      - "${FEEDBACK_PORT:-3001}:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/feedback').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 15s
       timeout: 5s
       start_period: 15s

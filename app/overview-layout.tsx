@@ -25,11 +25,12 @@ export function moduleForSection(section: string) {
   return Object.hasOwn(labels, id) ? id : undefined
 }
 
-export default function OverviewLayout({ modules, editing, addRequest }: {
-  modules: Record<string, ReactNode>; editing: boolean; addRequest: { id: string; before?: string } | null
+export default function OverviewLayout({ modules, editing, addRequest, resetRequest }: {
+  modules: Record<string, ReactNode>; editing: boolean; resetRequest: number; addRequest: { id: string; before?: string } | null
 }) {
   const [order, setOrder] = useState(initial)
   const [ready, setReady] = useState(false)
+  const handledReset = useRef(resetRequest)
   const gesture = useRef<{ id: string; y: number; active: boolean } | null>(null)
   const [target, setTarget] = useState<string | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
@@ -58,6 +59,13 @@ export default function OverviewLayout({ modules, editing, addRequest }: {
     setOrder(previous => previous.includes(addRequest.id) ? previous : insert(previous, addRequest.id, addRequest.before))
     setMessage(labels[addRequest.id] + ' در نمای کلی در دسترس است.')
   }, [addRequest])
+
+  useEffect(() => {
+    if (handledReset.current === resetRequest) return
+    handledReset.current = resetRequest
+    setOrder(initial)
+    setMessage('چیدمان پیش‌فرض بازگردانده شد.')
+  }, [resetRequest])
 
   function move(id: string, before?: string) {
     if (!Object.hasOwn(labels, id) || id === before) return

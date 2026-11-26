@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Check, Copy, Inbox, LockKeyhole, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Copy, Inbox, RefreshCw } from 'lucide-react'
 import type { FeedbackEntry } from '../lib/feedback-store'
 
 const formatDate = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' })
@@ -12,7 +12,18 @@ export default function FeedbackInbox() {
   const linkInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setFormLink(new URL('/feedback', window.location.origin).href)
+    const fallback = new URL('/feedback', window.location.origin)
+    fetch('/api/feedback/link').then(async response => {
+      if (!response.ok) throw new Error('Link unavailable')
+      const { url, port } = await response.json()
+      if (url) {
+        const configured = new URL(url)
+        if (configured.protocol === 'http:' || configured.protocol === 'https:') return configured.href
+      }
+      if (port) fallback.port = port
+      return fallback.href
+    }).then(setFormLink).catch(() => setCopyStatus('لینک فرم کارکنان در دسترس نیست.'))
+    void load()
   }, [])
 
   async function copyFormLink() {
@@ -26,26 +37,21 @@ export default function FeedbackInbox() {
     }
   }
 
-  const [password, setPassword] = useState('')
-  const [token, setToken] = useState('')
   const [entries, setEntries] = useState<FeedbackEntry[]>([])
   const [next, setNext] = useState<number | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
   const [status, setStatus] = useState('')
 
-  async function load(key: string, before?: number) {
+  async function load(before?: number) {
     setBusy(true)
     setStatus('')
     try {
-      const response = await fetch('/api/feedback' + (before ? '?before=' + before : ''), { headers: { Authorization: 'Bearer ' + key } })
+      const response = await fetch('/api/feedback' + (before ? '?before=' + before : ''))
       const result = await response.json()
       if (!response.ok) {
-        if (response.status === 401) { setToken(''); setEntries([]) }
         setStatus(result.error)
         return
       }
-      setToken(key)
-      setPassword('')
       setEntries(current => before ? [...current, ...result.entries] : result.entries)
       setNext(result.next)
     } catch {
@@ -59,23 +65,17 @@ export default function FeedbackInbox() {
     try {
       const response = await fetch('/api/feedback', {
         method: 'PATCH',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
       const result = await response.json()
       if (!response.ok) {
-        if (response.status === 401) { setToken(''); setEntries([]) }
         setStatus(result.error)
         return
       }
       setEntries(current => current.map(entry => entry.id === id ? { ...entry, reviewedAt: new Date().toISOString() } : entry))
     } catch { setStatus('وضعیت پیام ذخیره نشد.') }
     finally { setBusy(false) }
-  }
-
-  function unlock(event: FormEvent) {
-    event.preventDefault()
-    if (password && !busy) void load(password)
   }
 
   return <section className="panel glass">
@@ -86,22 +86,16 @@ export default function FeedbackInbox() {
         <button className="icon-button" disabled={!formLink} onClick={copyFormLink}><Copy size={15}/>کپی لینک</button></div>
       <small role="status">{copyStatus}</small>
     </div>
-    {!token ? <form className="feedback-form feedback-unlock" onSubmit={unlock}>
-      <label>رمز صندوق <input type="password" autoComplete="current-password" value={password} required onChange={event => setPassword(event.target.value)}/></label>
-      <button className="export" disabled={busy}><LockKeyhole size={16}/>باز کردن صندوق</button>
-    </form> : <>
-      <div className="feedback-inbox-actions">
-        <button className="icon-button" disabled={busy} onClick={() => load(token)}><RefreshCw size={16}/>تازه‌سازی</button>
-        <button className="icon-button" disabled={busy} onClick={() => { setToken(''); setEntries([]); setNext(null); setStatus('') }}>قفل صندوق</button>
-      </div>
+    <div className="feedback-inbox-actions">
+      <button className="icon-button" disabled={busy} onClick={() => load()}><RefreshCw size={16}/>تازه‌سازی</button>
+    </div>
       <div className="feedback-entries">{entries.map(entry => <article key={entry.id}>
         <header><div><strong>{entry.name ?? 'بدون نام'}</strong><small>{formatDate.format(new Date(entry.createdAt))}</small></div><span className="demo">{entry.reviewedAt ? 'بررسی شد' : 'جدید'}</span></header>
         <p>{entry.message}</p>
         {!entry.reviewedAt && <button className="icon-button" disabled={busy} onClick={() => review(entry.id)}><Check size={15}/>علامت‌گذاری به‌عنوان بررسی‌شده</button>}
       </article>)}</div>
-      {!entries.length && <p>پیامی ثبت نشده است.</p>}
-      {next !== null && <button className="icon-button" disabled={busy} onClick={() => load(token, next)}>پیام‌های قدیمی‌تر</button>}
-    </>}
+      {!entries.length && !status && <p>{busy ? 'در حال دریافت پیام‌ها…' : 'پیامی ثبت نشده است.'}</p>}
+      {next !== null && <button className="icon-button" disabled={busy} onClick={() => load(next)}>پیام‌های قدیمی‌تر</button>}
     {status && <p className="feedback-error" role="alert">{status}</p>}
   </section>
 }

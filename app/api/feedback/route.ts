@@ -1,19 +1,9 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
 import { listFeedback, reviewFeedback, submitFeedback } from '../../../lib/feedback-store'
 
 export const runtime = 'nodejs'
 
 const headers = { 'Cache-Control': 'no-store' }
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers })
-
-function authorization(request: Request) {
-  const secret = process.env.HR_INBOX_PASSWORD
-  if (!secret) return json({ error: 'رمز صندوق هنوز روی سرور تنظیم نشده است.' }, 503)
-  const auth = request.headers.get('authorization') ?? ''
-  const supplied = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-  const hash = (value: string) => createHash('sha256').update(value).digest()
-  if (!supplied || !timingSafeEqual(hash(supplied), hash(secret))) return json({ error: 'رمز صندوق درست نیست.' }, 401)
-}
 
 async function readBody(request: Request) {
   const stream = request.body?.getReader()
@@ -51,16 +41,14 @@ export async function POST(request: Request) {
 }
 
 export function GET(request: Request) {
-  const failure = authorization(request)
-  if (failure) return failure
+  if (process.env.DIDAR_PUBLIC_FEEDBACK_ONLY === '1') return json({ error: 'یافت نشد.' }, 404)
   const before = Number(new URL(request.url).searchParams.get('before') ?? Number.MAX_SAFE_INTEGER)
   if (!Number.isSafeInteger(before) || before < 1) return json({ error: 'شمارهٔ صفحه معتبر نیست.' }, 400)
   try { return json(listFeedback(before)) } catch { return json({ error: 'صندوق در دسترس نیست.' }, 503) }
 }
 
 export async function PATCH(request: Request) {
-  const failure = authorization(request)
-  if (failure) return failure
+  if (process.env.DIDAR_PUBLIC_FEEDBACK_ONLY === '1') return json({ error: 'یافت نشد.' }, 404)
   let body
   try { body = await readBody(request) } catch { return json({ error: 'شمارهٔ پیام معتبر نیست.' }, 400) }
   if (!Number.isSafeInteger(body?.id) || body.id < 1) return json({ error: 'شمارهٔ پیام معتبر نیست.' }, 400)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Address, Basemap, Point } from '../lib/yazd-basemap'
@@ -8,7 +8,23 @@ import type { Address, Basemap, Point } from '../lib/yazd-basemap'
 const center: Point = [31.884, 54.371]
 const cityBounds = L.latLngBounds([31.79, 54.23], [32.02, 54.54])
 
+export const mapStyles = {
+  offline: 'آفلاین',
+  dark: 'نقشهٔ تیره',
+  streets: 'نقشهٔ خیابانی',
+  satellite: 'نمای ماهواره‌ای',
+} as const
+export type MapStyle = keyof typeof mapStyles
+
+const osmCredit = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+const rasterStyles = {
+  dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: osmCredit + ' &copy; CARTO' },
+  streets: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: osmCredit },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics' },
+} as const
+
 type Props = {
+  mapStyle: MapStyle
   basemap: Basemap | null
   routes: { points: Point[]; color: string }[]
   selected: number
@@ -18,7 +34,7 @@ type Props = {
   onMovePoint: (index: number, point: Point) => void
 }
 
-export default function YazdMap({ basemap, routes, selected, editing, address, onAddPoint, onMovePoint }: Props) {
+export default function YazdMap({ mapStyle, basemap, routes, selected, editing, address, onAddPoint, onMovePoint }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const streets = useRef<L.LayerGroup | null>(null)
@@ -26,6 +42,7 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
   const pin = useRef<L.LayerGroup | null>(null)
   const click = useRef(onAddPoint)
   const move = useRef(onMovePoint)
+  const [tileError, setTileError] = useState(false)
 
   useEffect(() => { click.current = onAddPoint; move.current = onMovePoint }, [onAddPoint, onMovePoint])
 
@@ -36,7 +53,7 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
     if (instance.getZoom() < 11) instance.setView(center, 12)
     map.current = instance
     instance.createPane('streets').style.zIndex = '250'
-    instance.attributionControl.addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors')
+    instance.attributionControl.addAttribution(osmCredit)
     streets.current = L.layerGroup().addTo(instance)
     lines.current = L.layerGroup().addTo(instance)
     pin.current = L.layerGroup().addTo(instance)
@@ -51,6 +68,17 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
       pin.current = null
     }
   }, [])
+
+  useEffect(() => {
+    const instance = map.current
+    setTileError(false)
+    if (!instance || mapStyle === 'offline') return
+    const style = rasterStyles[mapStyle]
+    const tiles = L.tileLayer(style.url, { attribution: style.attribution, maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin' })
+    tiles.on('tileerror', () => setTileError(true))
+    tiles.addTo(instance)
+    return () => { tiles.remove() }
+  }, [mapStyle])
 
   useEffect(() => {
     const instance = map.current
@@ -116,6 +144,7 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
   }, [address])
 
   return <>
-    <div ref={container} className={editing ? 'live-map editing' : 'live-map'} aria-label="نقشهٔ خیابانی یزد و مسیرهای سرویس" />
+    <div ref={container} data-map-style={mapStyle} className={editing ? 'live-map editing' : 'live-map'} aria-label="نقشهٔ خیابانی یزد و مسیرهای سرویس" />
+    {tileError && <p className="map-search-status" role="status">بخشی از لایهٔ آنلاین بارگیری نشد. دادهٔ آفلاین و مسیرها روی نقشه باقی می‌مانند.</p>}
   </>
 }

@@ -1,9 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, CheckCircle2, MessageSquare, Send } from 'lucide-react'
+import { CheckCircle2, MessageSquare, Send } from 'lucide-react'
 
 export default function FeedbackPage() {
   const [name, setName] = useState('')
@@ -36,8 +34,7 @@ export default function FeedbackPage() {
 
   return <main className="feedback-page">
     <header className="feedback-navigation">
-      <span><Image src="/kavir-logo.svg" width={28} height={28} alt=""/>دیدار</span>
-      <Link className="icon-button" href="/"><ArrowRight size={15}/>بازگشت به داشبورد</Link>
+      <span><MessageSquare size={25} className="didar-mark"/>دیدار</span>
     </header>
     <section className="panel glass">
       <div className="panel-head"><div><h1>صندوق انتقادات و پیشنهادات</h1><p>پیام شما برای واحد منابع انسانی ارسال می‌شود.</p></div><span className="panel-icon"><MessageSquare size={20}/></span></div>

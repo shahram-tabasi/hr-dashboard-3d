@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import YazdMap from './yazd-map'
+import YazdMap, { mapStyles, type MapStyle } from './yazd-map'
 import AnalyticsChart from './analytics-charts'
 import { readRoutes, routeStorageKey, routeColors as colors, type Route } from '../lib/service-routes'
 import { importYazdMap, readBasemap, searchBasemap, updateBasemap, type Address, type Basemap, type Point } from '../lib/yazd-basemap'
@@ -16,6 +16,7 @@ export default function ServiceMap() {
   const [status, setStatus] = useState('')
   const active = draft ?? routes[selected]
 
+  const [mapStyle, setMapStyle] = useState<MapStyle>('offline')
   const [basemap, setBasemap] = useState<Basemap | null>(null)
   const [updating, setUpdating] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -133,6 +134,9 @@ export default function ServiceMap() {
   return <div className="hr-analytics"><section className="panel glass service-panel" id="service-map" tabIndex={-1}>
     <div className="panel-head"><div><h2>نقشهٔ سرویس‌های یزد</h2><p>۷ خط نمونه · مسیرها و تعداد نفرات قابل ویرایش</p></div>
       <div className="map-import-actions">
+        <label className="select">لایهٔ نقشه<select aria-label="لایهٔ نقشه یزد" value={mapStyle} onChange={event => setMapStyle(event.target.value as MapStyle)}>
+          {Object.entries(mapStyles).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
+        </select></label>
         <button className="icon-button" onClick={refreshMap} disabled={updating || importing}><RefreshCw size={15}/>{updating ? 'در حال دریافت…' : 'به‌روزرسانی آنلاین'}</button>
         <label className="export map-import"><Upload size={15}/>{importing ? 'در حال واردکردن…' : 'ورود فایل GeoJSON'}
           <input type="file" aria-label="ورود فایل نقشهٔ یزد" accept=".geojson,.json" disabled={updating || importing} onChange={importMap}/>
@@ -155,7 +159,7 @@ export default function ServiceMap() {
           </li>)}
         </ul>}
         <div className="route-map">
-          <YazdMap basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
+          <YazdMap mapStyle={mapStyle} basemap={basemap} routes={routes.map((route, index) => ({ color: colors[index], points: index === selected ? active.points : route.points }))} selected={selected} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
         </div>
         <a className="map-link" href="https://www.openstreetmap.org/#map=13/31.897/54.367" target="_blank" rel="noreferrer">باز کردن یزد در OpenStreetMap <ExternalLink size={13}/></a>
       </div>
