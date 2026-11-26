@@ -1,36 +1,18 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { readTasks, storageKey, taskDayKey as dayKey, todayInIran, type Day, type Task } from '../lib/planner-data'
 import { getIranHolidays } from '@avan-persian/holidays'
-import { jalaaliMonthLength, toGregorian, toJalaali } from 'jalaali-js'
+import { jalaaliMonthLength, toGregorian } from 'jalaali-js'
 import { CalendarDays, ChevronLeft, ChevronRight, Download, Pencil, Plus, Trash2 } from 'lucide-react'
 
-type Day = { jy: number; jm: number; jd: number }
-type Task = { id: string; day: string; title: string; time: string; done: boolean }
-const storageKey = 'didar-planner-v1'
 const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
 const weekdays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
 const fa = (value: number) => value.toLocaleString('fa-IR', { useGrouping: false })
 const pad = (value: number) => String(value).padStart(2, '0')
-const dayKey = ({ jy, jm, jd }: Day) => `${jy}-${pad(jm)}-${pad(jd)}`
-
-function todayInIran(): Day {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(Date.now())
-  const read = (type: string) => Number(parts.find(part => part.type === type)?.value)
-  return toJalaali(read('year'), read('month'), read('day'))
-}
-
 function weekday({ jy, jm, jd }: Day) {
   const { gy, gm, gd } = toGregorian(jy, jm, jd)
   return (new Date(Date.UTC(gy, gm - 1, gd)).getUTCDay() + 1) % 7
-}
-
-function readTasks(): Task[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) ?? '[]')
-    if (Array.isArray(saved)) return saved
-  } catch { /* An unavailable browser store starts with an empty calendar. */ }
-  return []
 }
 
 export default function Planner() {
@@ -62,6 +44,7 @@ export default function Planner() {
 
   function save(updated: Task[]) {
     setTasks(updated)
+    window.dispatchEvent(new CustomEvent('didar-tasks-updated', { detail: updated }))
     try {
       localStorage.setItem(storageKey, JSON.stringify(updated))
       setStorageMessage('')
@@ -76,7 +59,7 @@ export default function Planner() {
     if (!name) return
     save(editing
       ? tasks.map(task => task.id === editing ? { ...task, title: name, time } : task)
-      : [...tasks, { id: crypto.randomUUID(), day: selectedKey, title: name, time, done: false }])
+      : [...tasks, { id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`, day: selectedKey, title: name, time, done: false }])
     select(day)
   }
 

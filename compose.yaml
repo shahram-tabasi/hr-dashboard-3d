@@ -4,6 +4,10 @@ services:
       context: .
       args:
         NODE_IMAGE: "${NODE_IMAGE:-node:24-bookworm-slim}"
+    environment:
+      LOCAL_MODEL_URL: "${LOCAL_MODEL_URL:-}"
+      LOCAL_MODEL_NAME: "${LOCAL_MODEL_NAME:-}"
+      LOCAL_MODEL_KEY: "${LOCAL_MODEL_KEY:-}"
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
     restart: unless-stopped

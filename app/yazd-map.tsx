@@ -15,17 +15,19 @@ type Props = {
   editing: boolean
   address: Address | null
   onAddPoint: (point: Point) => void
+  onMovePoint: (index: number, point: Point) => void
 }
 
-export default function YazdMap({ basemap, routes, selected, editing, address, onAddPoint }: Props) {
+export default function YazdMap({ basemap, routes, selected, editing, address, onAddPoint, onMovePoint }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const streets = useRef<L.LayerGroup | null>(null)
   const lines = useRef<L.LayerGroup | null>(null)
   const pin = useRef<L.LayerGroup | null>(null)
   const click = useRef(onAddPoint)
+  const move = useRef(onMovePoint)
 
-  useEffect(() => { click.current = onAddPoint }, [onAddPoint])
+  useEffect(() => { click.current = onAddPoint; move.current = onMovePoint }, [onAddPoint, onMovePoint])
 
   useEffect(() => {
     if (!container.current) return
@@ -75,11 +77,17 @@ export default function YazdMap({ basemap, routes, selected, editing, address, o
       const active = index === selected
       if (points.length >= 2) L.polyline(points, { color: '#182438', weight: active ? 8 : 5, opacity: .65, interactive: false }).addTo(layer)
       if (points.length >= 2) L.polyline(points, { color, weight: active ? 5 : 3, opacity: active ? 1 : .8, interactive: false }).addTo(layer)
-      for (const point of points) {
+      for (const [i, point] of points.entries()) {
+        if (editing && active) {
+          const icon = L.divIcon({ className: 'route-stop-marker', html: String(i + 1), iconSize: [23, 23], iconAnchor: [11, 11] })
+          const marker = L.marker(point, { draggable: true, bubblingMouseEvents: false, icon, title: 'ایستگاه ' + (i + 1) }).addTo(layer)
+          marker.on('dragend', () => { const p = marker.getLatLng(); move.current(i, [p.lat, p.lng]) })
+          continue
+        }
         L.circleMarker(point, { radius: active ? 5 : 3, color: '#192538', weight: 1.4, fillColor: color, fillOpacity: 1, interactive: false }).addTo(layer)
       }
     })
-  }, [routes, selected])
+  }, [routes, selected, editing])
 
   useEffect(() => {
     const instance = map.current
