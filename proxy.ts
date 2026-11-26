@@ -10,7 +10,7 @@ export function proxy(request: NextRequest) {
     location.pathname = '/feedback'
     return NextResponse.redirect(location)
   }
-  if (safeMethod && (pathname === '/feedback' || pathname === '/simorgh-logo.png' || pathname.startsWith('/_next/static/'))) return NextResponse.next()
+  if (safeMethod && (pathname === '/feedback' || pathname === '/mark-light.png' || pathname.startsWith('/_next/static/'))) return NextResponse.next()
   if (request.method === 'POST' && pathname === '/api/feedback') return NextResponse.next()
 
   return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })

@@ -2,6 +2,6 @@ import Image from 'next/image'
 
 export default function DidarMark() {
   return <span className="brand-icon didar-company-mark">
-    <Image src="/simorgh-logo.png" width={31} height={28} unoptimized alt="لوگوی سیمرغ فناوری هوشمند ایرانیان"/>
+    <Image src="/mark-light.png" width={34} height={26} unoptimized alt="لوگوی سیمرغ فناوری هوشمند ایرانیان"/>
   </span>
 }
