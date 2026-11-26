@@ -14,7 +14,7 @@ import { peopleAt, sum, unitStats } from '../lib/people'
 import PlannerBell from './planner-bell'
 import Profile, { userName } from './profile'
 import { getLoans } from '../lib/loans'
-import { readRoutes } from '../lib/service-routes'
+import { readRoutes, routeName } from '../lib/service-routes'
 import { readTasks } from '../lib/planner-data'
 import type { ReportSection } from '../lib/reports'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
@@ -195,7 +195,7 @@ export default function Dashboard() {
       { id: 'attendance', title: 'حضور و کارکرد', columns: ['شاخص', 'مقدار', 'واحد', 'شعبه'], rows: attendance.map(item => [item.name, item.value, item.unit, city]) },
       { id: 'finance', title: 'مالی و دریافتی واحدها', columns: ['واحد', 'تعداد', 'مجموع دریافتی به تومان', 'در حال تحصیل'], rows: unitStats(employees).map(row => [row.name, row.members.length, row.payment, row.students]) },
       { id: 'loans', title: 'وام‌های کارکنان', columns: ['واحد', 'شعبه', 'نوع وام', 'تعداد فقره', 'مبلغ به تومان'], rows: getLoans(city).map(row => [row.unit, row.city, row.kind, row.count, row.amount]) },
-      { id: 'transport', title: 'سرویس‌های یزد', columns: ['خط سرویس', 'تعداد نفرات', 'ایستگاه‌ها', 'ایستاده', 'اسنپ'], rows: readRoutes().map((route, i) => [i + 1, route.count, route.points.length, route.standing ?? 0, route.snap ?? 0]) },
+      { id: 'transport', title: 'سرویس‌های یزد', columns: ['خط سرویس', 'تعداد نفرات', 'ایستگاه‌ها', 'ایستاده', 'اسنپ'], rows: readRoutes().map((route, i) => [routeName(route, i), route.count, route.points.length, route.standing ?? 0, route.snap ?? 0]) },
       { id: 'planner', title: 'تقویم و کارهای روزانه', columns: ['تاریخ شمسی', 'ساعت تهران', 'عنوان', 'وضعیت'], rows: readTasks().map(task => [task.day, task.time || '—', task.title, task.done ? 'انجام‌شده' : 'در انتظار']) },
       { id: 'data', title: 'منابع داده', columns: ['فیلد', 'مرجع', 'روش'], rows: shownSources.map(row => [row.field, row.source, row.method]) },
     ]

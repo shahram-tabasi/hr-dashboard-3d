@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { BarChart3, CalendarClock, ChartLine, CircleGauge } from 'lucide-react'
 import { horizonCounts, horizons, loanTypes, money as fa, percent, unitStats, type Person } from '../lib/people'
-import type { Route } from '../lib/service-routes'
+import { routeName, type Route } from '../lib/service-routes'
 
 export const chartLabels = {
   'gender-chart': 'ترکیب جنسیتی واحدها',
@@ -116,7 +116,7 @@ export default function AnalyticsChart({ id, people = [], routes = [], embedded 
         const max = Math.max(1, ...routes.map(row => row.count + (row.snap ?? 0)))
         const standing = Math.min(route.standing ?? 0, route.count)
         const quantities = [route.count - standing, standing, route.snap ?? 0]
-        return <div key={i}><span>خط {fa(i+1)}</span><div className="graph-stack">{quantities.map((value,index) => <i key={index} style={{ width: percent(value, max)+'%', background: tones[index] }}/>)}</div><small>{fa(route.count)} مسافر · {fa(standing)} ایستاده · {fa(route.snap ?? 0)} اسنپ</small></div>
+        return <div key={i}><span>{routeName(route, i)}</span><div className="graph-stack">{quantities.map((value,index) => <i key={index} style={{ width: percent(value, max)+'%', background: tones[index] }}/>)}</div><small>{fa(route.count)} مسافر · {fa(standing)} ایستاده · {fa(route.snap ?? 0)} اسنپ</small></div>
       })}</div>
     </>}
   </section>

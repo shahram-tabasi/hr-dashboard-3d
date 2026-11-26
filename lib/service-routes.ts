@@ -1,8 +1,16 @@
 import type { Point } from './yazd-basemap'
 
-export type Route = { count: number; points: Point[]; standing?: number; snap?: number }
+export type Route = { name?: string; count: number; points: Point[]; standing?: number; snap?: number }
 export const routeStorageKey = 'didar-yazd-service-routes-v1'
-export const routeColors = ['#ccb1ff', '#86e0f7', '#ffb5d1', '#fbd17f', '#a5e8b6', '#ffa489', '#a9bcff']
+const routeColors = ['#ccb1ff', '#86e0f7', '#ffb5d1', '#fbd17f', '#a5e8b6', '#ffa489', '#a9bcff']
+export function routeColor(index: number) {
+  return routeColors[index] ?? `hsl(${Math.round(index * 137.508) % 360} 72% 71%)`
+}
+
+export function routeName(route: Route | undefined, index: number) {
+  return route?.name?.trim() || 'سرویس ' + (index + 1).toLocaleString('fa-IR')
+}
+
 const terminal: Point = [31.919, 54.393]
 const sample: Route[] = [
   { count: 19, points: [[31.933, 54.328], [31.928, 54.355], [31.927, 54.380], terminal] },
@@ -17,8 +25,8 @@ const sample: Route[] = [
 export function readRoutes(): Route[] {
   try {
     const saved = JSON.parse(localStorage.getItem(routeStorageKey) ?? 'null') as Route[] | null
-    if (Array.isArray(saved) && saved.length === 7 && saved.every(route =>
-      route && Number.isSafeInteger(route.count) && route.count >= 0 &&
+    if (Array.isArray(saved) && saved.length > 0 && saved.every(route =>
+      route && (route.name === undefined || typeof route.name === 'string') && Number.isSafeInteger(route.count) && route.count >= 0 &&
       Array.isArray(route.points) && route.points.length >= 2 &&
       route.points.every(point => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite)),
     )) return saved

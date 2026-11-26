@@ -803,3 +803,8 @@ main [id] { scroll-margin-top: 24px; }
 
 .didar-company-mark img { object-fit: contain; filter: brightness(0) saturate(100%) invert(25%) sepia(19%) saturate(1688%) hue-rotate(227deg) brightness(92%); }
 .feedback-navigation .didar-company-mark { display: grid; place-items: center; }
+
+.route-list-heading { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.route-list-heading h3, .route-editor h3 { margin: 0 0 4px; font-size: 13px; }
+.route-editor input[type="text"] { width: min(100%, 200px); padding: 5px 8px; }
+.route-editor label { margin-bottom: 5px; }
