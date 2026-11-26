@@ -1,12 +1,31 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { Check, Inbox, LockKeyhole, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Check, Copy, Inbox, LockKeyhole, RefreshCw } from 'lucide-react'
 import type { FeedbackEntry } from '../lib/feedback-store'
 
 const formatDate = new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' })
 
 export default function FeedbackInbox() {
+  const [formLink, setFormLink] = useState('')
+  const [copyStatus, setCopyStatus] = useState('')
+  const linkInput = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setFormLink(new URL('/feedback', window.location.origin).href)
+  }, [])
+
+  async function copyFormLink() {
+    try {
+      await navigator.clipboard.writeText(formLink)
+      setCopyStatus('لینک فرم کارکنان کپی شد.')
+    } catch {
+      linkInput.current?.focus()
+      linkInput.current?.select()
+      setCopyStatus('لینک انتخاب شد. آن را با گزینهٔ کپی مرورگر بردارید.')
+    }
+  }
+
   const [password, setPassword] = useState('')
   const [token, setToken] = useState('')
   const [entries, setEntries] = useState<FeedbackEntry[]>([])
@@ -61,6 +80,12 @@ export default function FeedbackInbox() {
 
   return <section className="panel glass">
     <div className="panel-head"><div><h2>صندوق انتقادات و پیشنهادات</h2><p>پیام‌های ثبت‌شده از صفحهٔ دیدار</p></div><span className="panel-icon"><Inbox size={20}/></span></div>
+    <div className="feedback-share">
+      <label htmlFor="employee-feedback-link">لینک فرم کارکنان</label>
+      <div><input id="employee-feedback-link" ref={linkInput} value={formLink} dir="ltr" readOnly/>
+        <button className="icon-button" disabled={!formLink} onClick={copyFormLink}><Copy size={15}/>کپی لینک</button></div>
+      <small role="status">{copyStatus}</small>
+    </div>
     {!token ? <form className="feedback-form feedback-unlock" onSubmit={unlock}>
       <label>رمز کارتابل <input type="password" autoComplete="current-password" value={password} required onChange={event => setPassword(event.target.value)}/></label>
       <button className="export" disabled={busy}><LockKeyhole size={16}/>باز کردن کارتابل</button>
