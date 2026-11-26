@@ -5,9 +5,13 @@ services:
       args:
         NODE_IMAGE: "${NODE_IMAGE:-node:24-bookworm-slim}"
     environment:
+      HR_INBOX_PASSWORD: "${HR_INBOX_PASSWORD:-}"
+      FEEDBACK_DATA_DIR: /app/data
       LOCAL_MODEL_URL: "${LOCAL_MODEL_URL:-}"
       LOCAL_MODEL_NAME: "${LOCAL_MODEL_NAME:-}"
       LOCAL_MODEL_KEY: "${LOCAL_MODEL_KEY:-}"
+    volumes:
+      - feedback-data:/app/data
     ports:
       - "${DASHBOARD_PORT:-3000}:3000"
     restart: unless-stopped
@@ -17,3 +21,6 @@ services:
       timeout: 5s
       start_period: 15s
       retries: 3
+
+volumes:
+  feedback-data:

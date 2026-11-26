@@ -20,6 +20,8 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 
+RUN install -d -m 0700 -o node -g node /app/data
+
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

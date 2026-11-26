@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
+import FeedbackInbox from './feedback-inbox'
 import dynamic from 'next/dynamic'
 import Sky from './sky'
 import PeopleReports from './people-reports'
@@ -16,7 +18,7 @@ import { readRoutes } from '../lib/service-routes'
 import { readTasks } from '../lib/planner-data'
 import type { ReportSection } from '../lib/reports'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Plus, Settings2, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, Inbox, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Plus, Settings2, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { cities, getDashboard, type City } from '../lib/dashboard'
 import sources from '../lib/sources.json'
 
@@ -51,6 +53,7 @@ const nav = [
   ] },
   { id: 'reports', title: 'خروجی', icon: Files, sections: [] },
   { id: 'planner', title: 'تقویم شمسی', icon: CalendarDays, sections: [{ id: 'daily-planner', label: 'برنامهٔ روزانه' }] },
+  { id: 'inbox', title: 'کارتابل منابع انسانی', icon: Inbox, sections: [] },
   { id: 'assistant', title: 'دستیار منابع انسانی', icon: Bot, sections: [] },
   { id: 'data', title: 'منابع داده', icon: Database, sections: [
     { id: 'catalog', label: 'کاتالوگ داده‌ها' },
@@ -208,7 +211,7 @@ export default function Dashboard() {
         <svg className="sidebar-outline outline-compact" viewBox="0 0 76 852" preserveAspectRatio="none" aria-hidden="true">
           <path d="M24 1 H54 C68 1 75 8 75 22 V830 C75 844 68 851 54 851 H24 C9 851 1 837 2.5 809 C9 562 9 280 2.5 43 C1 15 9 1 24 1 Z" />
         </svg>
-        <div className="brand"><span className="brand-icon"><Image src="/kavir-logo.svg" width={29} height={29} alt="لوگوی کویر" /></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
+        <div className="brand"><Link className="brand-link" href="/feedback" aria-label="دیدار، صندوق انتقادات و پیشنهادات" title="صندوق انتقادات و پیشنهادات"><span className="brand-icon"><Image src="/kavir-logo.svg" width={29} height={29} alt="لوگوی کویر" /></span><div className="sidebar-label"><strong>دیدار</strong><small>منابع انسانی الکتروکویر</small></div></Link><button className="icon-button sidebar-toggle" type="button" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="dashboard-navigation" onClick={() => setCollapsed(!collapsed)}><ToggleIcon size={18}/></button></div>
         <Profile/>
         <div className="nav-label">فضای کاری</div>
         <nav id="dashboard-navigation" aria-label="ناوبری اصلی">
@@ -257,13 +260,13 @@ export default function Dashboard() {
             }}><Settings2 size={16}/>{editingOverview ? 'پایان ویرایش' : 'ویرایش صفحه'}</button>}
             <span className="topbar-user">{userName}</span>
             <PlannerBell openCalendar={() => go('تقویم شمسی')}/>
-            {view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
-            {view !== 'خروجی' && <button className="export" aria-label="خروجی گزارش" onClick={() => go('خروجی')}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
+            {view !== 'کارتابل منابع انسانی' && view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
+            {view !== 'کارتابل منابع انسانی' && view !== 'خروجی' && <button className="export" aria-label="خروجی گزارش" onClick={() => go('خروجی')}><ArrowDownToLine size={16}/><span>خروجی گزارش</span></button>}
           </div>
         </header>
 
         {view === 'نمای کلی' && <div className="page-intro overview-intro"><div><h1>داشبورد منابع انسانی</h1><p>الکتروکویر · تهران و یزد</p></div><span className="demo"><i/>داده‌های نمایشی</span></div>}
-        {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
+        {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'کارتابل منابع انسانی' ? 'دریافت و بررسی پیام‌های کارکنان' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
 
         {view === 'نمای کلی' && <OverviewLayout editing={editingOverview} addRequest={addModule} modules={{
           ...Object.fromEntries((Object.keys(chartLabels) as ChartId[]).map(id => [id, <AnalyticsChart key={id} id={id} people={employees} routes={overviewRoutes} embedded/>])),
@@ -312,6 +315,7 @@ export default function Dashboard() {
         {view === 'وام‌های کارکنان' && <PeopleReports key={'loans-' + city} city={city} mode="loans"/>}
 
 
+        {view === 'کارتابل منابع انسانی' && <FeedbackInbox/>}
         {view === 'دستیار منابع انسانی' && <HRAssistant/>}
         {view === 'خروجی' && <ReportCenter sections={reportSections}/>}
         {view === 'تقویم شمسی' && <div id="daily-planner" tabIndex={-1}><Planner/></div>}

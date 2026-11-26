@@ -761,3 +761,30 @@ main [id] { scroll-margin-top: 24px; }
 .submenu-addable button { display: flex; align-items: center; gap: 4px; border: 1px dashed #d7bffc6e; cursor: grab; margin-block: 2px; touch-action: pan-y; }
 .submenu-addable button svg { flex: none; color: #dfc8ff; }
 @media(max-width: 650px) { .graph-timelines { grid-template-columns: 1fr; } .graph-stacks > div, .graph-attendance > div { font-size: 10px; grid-template-columns: minmax(68px,.5fr) minmax(30px,1fr) minmax(45px,.5fr); } }
+
+.brand-link { display: flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; border-radius: 12px; min-width: 0; }
+.brand-link:hover .brand-icon { filter: brightness(1.12); }
+.brand-link small { white-space: normal; }
+.feedback-page { max-width: 690px; margin-inline: auto; padding: 30px 16px; }
+.feedback-navigation { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.feedback-navigation span { display: flex; gap: 9px; align-items: center; font-size: 19px; font-weight: 700; }
+.feedback-navigation img { background: #e1d2fa; border-radius: 8px; padding: 3px; }
+.feedback-navigation a { text-decoration: none; }
+.feedback-page h1 { margin: 0; font-size: clamp(21px,4.5vw,33px); line-height: 1.4; }
+.feedback-form, .feedback-form label { display: grid; gap: 8px; }
+.feedback-form { gap: 15px; }
+.feedback-form label { font-weight: 600; font-size: 14px; }
+.feedback-form small { font-size: 11px; font-weight: 400; }
+.feedback-form input, .feedback-form textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--edge); border-radius: 9px; background: #1b2031b2; color: var(--ink); font: inherit; }
+.feedback-form textarea { resize: vertical; min-height: 110px; }
+.feedback-submit, .feedback-inbox-actions, .feedback-entries header { display: flex; gap: 9px; align-items: center; justify-content: space-between; }
+.feedback-error { color: #ffcada; padding-block: 8px; }
+.feedback-success { display: grid; gap: 12px; justify-items: start; padding: 14px 0; color: #c6eccd; }
+.feedback-unlock { max-width: 350px; justify-items: start; }
+.feedback-unlock label { width: 100%; }
+.feedback-inbox-actions { justify-content: flex-start; margin-bottom: 11px; }
+.feedback-entries { display: grid; gap: 10px; margin-block: 8px; }
+.feedback-entries article { border: 1px solid var(--edge); border-radius: 12px; background: #ffffff08; padding: 10px; }
+.feedback-entries header small { display: block; font-size: 11px; }
+.feedback-entries article p { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: 10px; }
+.feedback-entries article strong { overflow-wrap: anywhere; }

@@ -5,3 +5,4 @@ node_modules
 next-env.d.ts
 .env*
 npm-debug.log*
+.didar-data/
