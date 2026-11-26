@@ -1,14 +1,15 @@
 import type { Point } from './yazd-basemap'
 
-export type Route = { name?: string; count: number; points: Point[]; standing?: number; snap?: number }
+export type Route = { number?: number; name?: string; count: number; points: Point[]; standing?: number; snap?: number }
 export const routeStorageKey = 'didar-yazd-service-routes-v1'
 const routeColors = ['#ccb1ff', '#86e0f7', '#ffb5d1', '#fbd17f', '#a5e8b6', '#ffa489', '#a9bcff']
-export function routeColor(index: number) {
+export function routeColor(route: Route, fallbackIndex: number) {
+  const index = (route.number ?? fallbackIndex + 1) - 1
   return routeColors[index] ?? `hsl(${Math.round(index * 137.508) % 360} 72% 71%)`
 }
 
 export function routeName(route: Route | undefined, index: number) {
-  return route?.name?.trim() || 'سرویس ' + (index + 1).toLocaleString('fa-IR')
+  return route?.name?.trim() || 'سرویس ' + (route?.number ?? index + 1).toLocaleString('fa-IR')
 }
 
 const terminal: Point = [31.919, 54.393]
@@ -25,11 +26,25 @@ const sample: Route[] = [
 export function readRoutes(): Route[] {
   try {
     const saved = JSON.parse(localStorage.getItem(routeStorageKey) ?? 'null') as Route[] | null
-    if (Array.isArray(saved) && saved.length > 0 && saved.every(route =>
+    if (Array.isArray(saved) && saved.every(route =>
       route && (route.name === undefined || typeof route.name === 'string') && Number.isSafeInteger(route.count) && route.count >= 0 &&
       Array.isArray(route.points) && route.points.length >= 2 &&
       route.points.every(point => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite)),
-    )) return saved
+    )) return numberRoutes(saved)
   } catch { /* A missing or invalid local draft falls back to the demo. */ }
-  return sample
+  return numberRoutes(sample)
+}
+
+function numberRoutes(routes: Route[]) {
+  const used = new Set<number>()
+  let next = 1
+  return routes.map(route => {
+    let number = route.number ?? 0
+    if (!Number.isSafeInteger(number) || number <= 0 || used.has(number)) {
+      while (used.has(next)) next++
+      number = next
+    }
+    used.add(number)
+    return { ...route, number }
+  })
 }

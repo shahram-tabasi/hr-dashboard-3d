@@ -15,6 +15,8 @@ export default function ServiceMap() {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState<Route | null>(null)
   const [status, setStatus] = useState('')
+  const deleteDialog = useRef<HTMLDialogElement>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
   const active = draft ?? routes[selected]
   const activeIndex = adding ? routes.length : selected
   const displayedRoutes = adding && draft ? [...routes, draft] : routes
@@ -140,7 +142,9 @@ export default function ServiceMap() {
   function beginNew() {
     setStatus('')
     setAdding(true)
-    setDraft({ name: routeName(undefined, routes.length), count: 0, standing: 0, snap: 0, points: [] })
+    const number = Math.max(0, ...routes.map((route, index) => route.number ?? index + 1)) + 1
+    const newRoute = { number, count: 0, standing: 0, snap: 0, points: [] }
+    setDraft({ ...newRoute, name: routeName(newRoute, routes.length) })
   }
 
   function cancel() {
@@ -152,15 +156,27 @@ export default function ServiceMap() {
     if (!draft || !canSave) return
     const record = { ...draft, name: draft.name?.trim() || undefined }
     const updated = adding ? [...routes, record] : routes.map((route, index) => index === selected ? record : route)
+    persist(updated, adding ? 'سرویس جدید در همین مرورگر ذخیره شد.' : 'تغییرات در همین مرورگر ذخیره شد.')
+    setSelected(activeIndex)
+    cancel()
+  }
+
+  function persist(updated: Route[], message: string) {
     try {
       localStorage.setItem(routeStorageKey, JSON.stringify(updated))
-      setStatus(adding ? 'سرویس جدید در همین مرورگر ذخیره شد.' : 'تغییرات در همین مرورگر ذخیره شد.')
+      setStatus(message)
     } catch {
       setStatus('تغییرات برای این جلسه ثبت شد. ذخیرهٔ مرورگر در دسترس نیست.')
     }
     setRoutes(updated)
-    setSelected(activeIndex)
-    cancel()
+  }
+
+  function removeSelected() {
+    if (!routes[selected] || draft) return
+    const updated = routes.filter((_, index) => index !== selected)
+    persist(updated, '«' + routeName(routes[selected], selected) + '» از فهرست حذف شد.')
+    setSelected(Math.max(0, Math.min(selected, updated.length - 1)))
+    requestAnimationFrame(() => addButton.current?.focus())
   }
 
   return <div className="hr-analytics"><section className="panel glass service-panel" id="service-map" tabIndex={-1}>
@@ -193,12 +209,12 @@ export default function ServiceMap() {
           </li>)}
         </ul>}
         <div className="route-map">
-          <YazdMap mapStyle={currentStyle} basemap={basemap} routes={displayedRoutes.map((route, index) => ({ color: routeColor(index), points: index === activeIndex ? active.points : route.points }))} selected={activeIndex} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
+          <YazdMap mapStyle={currentStyle} basemap={basemap} routes={displayedRoutes.map((route, index) => ({ color: routeColor(route, index), points: index === activeIndex ? active?.points ?? route.points : route.points }))} selected={activeIndex} editing={Boolean(draft)} address={address} onAddPoint={addPoint} onMovePoint={movePoint}/>
         </div>
         <a className="map-link" href="https://www.openstreetmap.org/#map=13/31.897/54.367" target="_blank" rel="noreferrer">باز کردن یزد در OpenStreetMap <ExternalLink size={13}/></a>
       </div>
       <div>
-        <div className="route-list-heading"><h3>خطوط سرویس</h3>{!draft && <button className="export" onClick={beginNew}><Plus size={16}/>سرویس جدید</button>}</div>
+        <div className="route-list-heading"><h3>خطوط سرویس</h3>{!draft && <button ref={addButton} className="export" onClick={beginNew}><Plus size={16}/>سرویس جدید</button>}</div>
         <div className="route-list" aria-label="خطوط سرویس">
           {routes.map((route, index) => <button key={index} onClick={() => {
             if (draft && index !== activeIndex) {
@@ -208,15 +224,16 @@ export default function ServiceMap() {
             setSelected(index)
             setStatus('')
           }} aria-pressed={activeIndex === index}>
-            <i style={{ background: routeColor(index) }}/><span>{routeName(route, index)}</span><strong>{fa(index === activeIndex ? active.count : route.count)} نفر</strong>
+            <i style={{ background: routeColor(route, index) }}/><span>{routeName(route, index)}</span><strong>{fa(index === activeIndex ? active?.count ?? route.count : route.count)} نفر</strong>
           </button>)}
         </div>
-        <div className="route-kpis">
+        {active && <div className="route-kpis">
           <span>ایستگاه‌ها <strong>{fa(active.points.length)}</strong></span>
           <span>مسافران <strong>{fa(active.count)}</strong></span>
           <span>ایستاده <strong>{fa(active.standing ?? 0)}</strong></span>
           <span>اسنپ <strong>{fa(active.snap ?? 0)}</strong></span>
-        </div>
+        </div>}
+        {!active && <p className="route-status">هنوز سرویسی تعریف نشده است. برای شروع «سرویس جدید» را بزنید.</p>}
         {draft ? <div className="route-editor">
           <h3>{adding ? 'تعریف سرویس جدید' : 'ویرایش خط سرویس'}</h3>
           <label>نام سرویس <input type="text" maxLength={80} value={draft.name ?? ''} placeholder={routeName(undefined, activeIndex)} onChange={event => setDraft({ ...draft, name: event.target.value })}/></label>
@@ -236,7 +253,18 @@ export default function ServiceMap() {
             <button className="export" disabled={!canSave} onClick={save}><Save size={15}/>ذخیره</button>
             <button className="icon-button" onClick={cancel}><X size={15}/>لغو</button>
           </div>
-        </div> : <button className="export route-edit" onClick={() => { setStatus(''); setDraft(active) }}><Pencil size={15}/>ویرایش {routeName(active, selected)}</button>}
+        </div> : active && <div className="route-actions route-edit">
+          <button className="export" onClick={() => { setStatus(''); setDraft(active) }}><Pencil size={15}/>ویرایش {routeName(active, selected)}</button>
+          <button className="icon-button module-remove" aria-label={'حذف ' + routeName(active, selected)} onClick={() => deleteDialog.current?.showModal()}><Trash2 size={15}/>حذف سرویس</button>
+        </div>}
+        <dialog ref={deleteDialog} className="modal glass module-confirm" aria-labelledby="delete-route-title">
+          <h2 id="delete-route-title">سرویس حذف شود؟</h2>
+          <p>«{routeName(active, selected)}» و ایستگاه‌های آن از فهرست سرویس‌ها حذف می‌شوند.</p>
+          <form method="dialog" className="module-confirm-actions">
+            <button className="icon-button" autoFocus value="cancel">انصراف</button>
+            <button className="module-confirm-delete" value="delete" onClick={removeSelected}>حذف سرویس</button>
+          </form>
+        </dialog>
         <p className="route-status" role="status">{status}</p>
       </div>
     </div>
