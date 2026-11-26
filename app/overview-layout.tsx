@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, GripVertical, Plus, Settings2, X } from 'lucide-react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { GripVertical, Trash2 } from 'lucide-react'
 import { chartLabels } from './analytics-charts'
 
 export const dragType = 'application/x-didar-module'
@@ -24,11 +24,17 @@ export function moduleForSection(section: string) {
   return Object.hasOwn(labels, id) ? id : undefined
 }
 
-export default function OverviewLayout({ modules, editing, setEditing, addRequest }: {
-  modules: Record<string, ReactNode>; editing: boolean; setEditing: (value: boolean) => void; addRequest: { id: string } | null
+export default function OverviewLayout({ modules, editing, addRequest }: {
+  modules: Record<string, ReactNode>; editing: boolean; addRequest: { id: string; before?: string } | null
 }) {
   const [order, setOrder] = useState(initial)
   const [ready, setReady] = useState(false)
+  const gesture = useRef<{ id: string; y: number; active: boolean } | null>(null)
+  const [target, setTarget] = useState<string | null>(null)
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(key) ?? 'null')
@@ -43,49 +49,119 @@ export default function OverviewLayout({ modules, editing, setEditing, addReques
   }, [ready, order])
   useEffect(() => {
     if (!addRequest || !Object.hasOwn(labels, addRequest.id)) return
-    setOrder(previous => previous.includes(addRequest.id) ? previous : [...previous, addRequest.id])
+    setOrder(previous => previous.includes(addRequest.id) ? previous : insert(previous, addRequest.id, addRequest.before))
+    setMessage(labels[addRequest.id] + ' در نمای کلی در دسترس است.')
   }, [addRequest])
 
-  function save(value: string[]) { setOrder(value) }
   function move(id: string, before?: string) {
-    if (!(Object.hasOwn(labels, id)) || id === before) return
-    const next = order.filter(item => item !== id)
-    const index = before === undefined ? next.length : next.indexOf(before)
-    next.splice(index < 0 ? next.length : index, 0, id)
-    save(next)
-  }
-  function shift(index: number, direction: number) {
-    const result = [...order]
-    const target = index + direction
-    ;[result[index], result[target]] = [result[target], result[index]]
-    save(result)
+    if (!Object.hasOwn(labels, id) || id === before) return
+    setOrder(previous => insert(previous, id, before))
+    setMessage('جای کارت «' + labels[id] + '» تنظیم شد.')
   }
 
-  return <>
-    <div className="layout-controls"><button className="icon-button" aria-expanded={editing} onClick={() => setEditing(!editing)}><Settings2 size={16}/>{editing ? 'پایان ویرایش' : 'ویرایش چیدمان'}</button></div>
-    <div className={editing ? 'overview-modules editing-layout' : 'overview-modules'}>
-      {editing && <aside className="panel glass module-palette">
-        <h2>ماژول‌ها</h2><p>ماژول را بکشید یا روی آن بزنید.</p>
-        {Object.keys(labels).filter(id => !order.includes(id)).map(id => <button key={id} className="icon-button" draggable onDragStart={event => { event.dataTransfer.setData(dragType, id) }} onClick={() => move(id)}><Plus size={15}/>{labels[id]}</button>)}
-        <button className="icon-button" onClick={() => save(initial)}>بازگردانی چیدمان</button>
-      </aside>}
-      <div className="module-list" onDragOver={event => { if (editing && event.dataTransfer.types.includes(dragType)) event.preventDefault() }} onDrop={event => { if (editing && event.dataTransfer.types.includes(dragType)) { event.preventDefault(); move(event.dataTransfer.getData(dragType)) } }}>
-        {editing && <div className="module-drop">ماژول را اینجا یا روی یکی از کارت‌ها رها کنید.</div>}
-        {order.map((id, index) => <article key={id} onDragOver={event => { if (editing && event.dataTransfer.types.includes(dragType)) event.preventDefault() }} onDrop={event => {
-          if (!editing || !event.dataTransfer.types.includes(dragType)) return
-          event.preventDefault()
-          event.stopPropagation()
-          move(event.dataTransfer.getData(dragType), id)
-        }}>
-          {editing && <div className="module-tools">
-            <span draggable onDragStart={event => { event.dataTransfer.setData(dragType, id) }}><GripVertical size={15}/>{labels[id]}</span>
-            {index > 0 && <button className="icon-button" aria-label={'بالا بردن ' + labels[id]} onClick={() => shift(index,-1)}><ArrowUp size={13}/></button>}
-            {index < order.length - 1 && <button className="icon-button" aria-label={'پایین بردن ' + labels[id]} onClick={() => shift(index,1)}><ArrowDown size={13}/></button>}
-            <button className="icon-button" aria-label={'حذف ' + labels[id]} onClick={() => save(order.filter(item => item !== id))}><X size={14}/></button>
-          </div>}
-          {modules[id]}
-        </article>)}
-      </div>
+  function shift(index: number, direction: number) {
+    const target = index + direction
+    if (target < 0 || target >= order.length) return
+    const result = [...order]
+    ;[result[index], result[target]] = [result[target], result[index]]
+    setOrder(result)
+    setMessage(labels[order[index]] + ' · جایگاه ' + (target + 1).toLocaleString('fa-IR'))
+  }
+
+  function startPointer(event: PointerEvent<HTMLButtonElement>, id: string) {
+    if (event.button !== 0 || !event.isPrimary) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    gesture.current = { id, y: event.clientY, active: false }
+  }
+
+  function overModule(event: PointerEvent) {
+    return document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-overview-module]')?.dataset.overviewModule
+  }
+
+  function updatePointer(event: PointerEvent<HTMLButtonElement>) {
+    const current = gesture.current
+    if (!current) return
+    if (!current.active && Math.abs(current.y - event.clientY) < 6) return
+    current.active = true
+    setDragging(current.id)
+    setTarget(overModule(event) ?? null)
+    if (event.clientY < 75) window.scrollBy(0, -18)
+    if (event.clientY > window.innerHeight - 100) window.scrollBy(0, 18)
+  }
+
+  function finishPointer(event?: PointerEvent<HTMLButtonElement>) {
+    const current = gesture.current
+    if (event && current?.active) {
+      const hovered = overModule(event)
+      const index = hovered ? order.indexOf(hovered) : -1
+      if (index >= 0 && hovered !== current.id) {
+        const next = order.filter(id => id !== current.id)
+        next.splice(index, 0, current.id)
+        setOrder(next)
+        setMessage(labels[current.id] + ' جابه‌جا شد.')
+      }
+    }
+    gesture.current = null
+    setTarget(null)
+    setDragging(null)
+  }
+
+  function confirmRemoval(id: string) {
+    setRemoving(id)
+    dialog.current?.showModal()
+  }
+
+  return <div className={editing ? 'overview-modules editing-layout' : 'overview-modules'}>
+    <p className="layout-status" role="status">{message}</p>
+    <div className="module-list" data-overview-drop onDragOver={event => {
+      if (editing && event.dataTransfer.types.includes(dragType)) event.preventDefault()
+    }} onDrop={event => {
+      if (!editing || !event.dataTransfer.types.includes(dragType)) return
+      event.preventDefault()
+      move(event.dataTransfer.getData(dragType))
+    }}>
+      {editing && <div className="module-drop">از زیرشاخه‌های منوی اصلی کارت بکشید یا روی علامت افزودن بزنید.</div>}
+      {order.map((id, index) => <article key={id} data-overview-module={id} className={target === id && dragging !== id ? 'module-target' : dragging === id ? 'module-moving' : ''} onDrop={event => {
+        if (!editing || !event.dataTransfer.types.includes(dragType)) return
+        event.preventDefault()
+        event.stopPropagation()
+        move(event.dataTransfer.getData(dragType), id)
+      }}>
+        {editing && <div className="module-tools glass">
+          <button className="icon-button module-grip" aria-label={'جابجایی ' + labels[id]} title="بکشید یا از کلیدهای بالا و پایین استفاده کنید"
+            onPointerDown={event => startPointer(event, id)} onPointerMove={updatePointer}
+            onPointerUp={finishPointer} onPointerCancel={() => finishPointer()} onLostPointerCapture={() => finishPointer()}
+            onKeyDown={event => {
+              if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+              event.preventDefault()
+              shift(index, event.key === 'ArrowUp' ? -1 : 1)
+            }}><GripVertical size={18}/></button>
+          <span>{labels[id]}</span>
+          <button className="icon-button module-remove" aria-label={'حذف ' + labels[id]} title="حذف از نمای کلی" onClick={() => confirmRemoval(id)}><Trash2 size={16}/></button>
+        </div>}
+        {modules[id]}
+      </article>)}
+      {!editing && order.length === 0 && <p className="module-drop">برای افزودن کارت، «ویرایش صفحه» را بزنید.</p>}
     </div>
-  </>
+    <dialog ref={dialog} className="modal glass module-confirm" aria-labelledby="module-dialog-title" onClose={() => setRemoving(null)}>
+      <h2 id="module-dialog-title">کارت از نمای کلی حذف شود؟</h2>
+      <p>می‌توانید «{removing ? labels[removing] : ''}» را دوباره از منوی اصلی اضافه کنید.</p>
+      <form method="dialog" className="module-confirm-actions">
+        <button autoFocus className="icon-button" value="cancel">انصراف</button>
+        <button className="module-confirm-delete" value="delete" onClick={() => {
+          if (!removing) return
+          setOrder(previous => previous.filter(id => id !== removing))
+          setMessage(labels[removing] + ' از نمای کلی حذف شد.')
+          requestAnimationFrame(() => document.getElementById('edit-overview')?.focus())
+        }}><Trash2 size={15}/>حذف کارت</button>
+      </form>
+    </dialog>
+  </div>
+}
+
+function insert(order: string[], id: string, before?: string) {
+  const result = order.filter(item => item !== id)
+  const index = before ? result.indexOf(before) : -1
+  result.splice(index < 0 ? result.length : index, 0, id)
+  return result
 }

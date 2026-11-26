@@ -15,8 +15,8 @@ import { getLoans } from '../lib/loans'
 import { readRoutes } from '../lib/service-routes'
 import { readTasks } from '../lib/planner-data'
 import type { ReportSection } from '../lib/reports'
-import { useEffect, useState, type CSSProperties } from 'react'
-import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, UserCheck, UserPlus, Users, X } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { Activity, ArrowDownToLine, ArrowLeft, Banknote, Bot, BriefcaseBusiness, Building2, BusFront, CalendarDays, ChevronDown, CircleHelp, Clock3, Database, Files, LayoutDashboard, MapPin, Menu, PanelRightClose, PanelRightOpen, Plus, Settings2, UserCheck, UserPlus, Users, X } from 'lucide-react'
 import { cities, getDashboard, type City } from '../lib/dashboard'
 import sources from '../lib/sources.json'
 
@@ -68,7 +68,9 @@ export default function Dashboard() {
   const [menu, setMenu] = useState(false)
   const [expanded, setExpanded] = useState<View | null>('نمای کلی')
   const [editingOverview, setEditingOverview] = useState(false)
-  const [addModule, setAddModule] = useState<{ id: string } | null>(null)
+  const [addModule, setAddModule] = useState<{ id: string; before?: string } | null>(null)
+  const cancelMenuGesture = useRef<(() => void) | null>(null)
+  const [addingByTouch, setAddingByTouch] = useState(false)
   const [overviewRoutes, setOverviewRoutes] = useState<Route[]>([])
   const [destination, setDestination] = useState<{ id: string } | null>(null)
   const [collapsed, setCollapsed] = useState(false)
@@ -140,6 +142,47 @@ export default function Dashboard() {
     setAddModule(module ? { id: module } : null)
   }
 
+  useEffect(() => () => cancelMenuGesture.current?.(), [])
+
+  function startMenuGesture(event: PointerEvent<HTMLButtonElement>, id: string) {
+    if (event.pointerType !== 'touch' || !event.isPrimary) return
+    cancelMenuGesture.current?.()
+    const startX = event.clientX
+    const pointerId = event.pointerId
+    let active = false
+
+    function move(pointer: globalThis.PointerEvent) {
+      if (pointer.pointerId !== pointerId || active || Math.abs(startX - pointer.clientX) < 18) return
+      active = true
+      setAddingByTouch(true)
+      setMenu(false)
+    }
+
+    function end(pointer: globalThis.PointerEvent) {
+      if (pointer.pointerId !== pointerId) return
+      cleanup()
+      if (!active) return
+      setAddingByTouch(false)
+      if (pointer.type !== 'pointerup') return
+      const hit = document.elementFromPoint(pointer.clientX, pointer.clientY)
+      if (!hit?.closest('[data-overview-drop]')) return
+      const before = hit.closest<HTMLElement>('[data-overview-module]')?.dataset.overviewModule
+      setAddModule({ id, before })
+    }
+
+    function cleanup() {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      cancelMenuGesture.current = null
+    }
+
+    cancelMenuGesture.current = cleanup
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   function reportSections(): ReportSection[] {
     return [
       { id: 'overview', title: 'نمای کلی', columns: ['شاخص', 'تعداد', 'شعبه'], rows: cards.map(card => [card.title, card.value, city]) },
@@ -183,10 +226,11 @@ export default function Dashboard() {
                   const module = moduleForSection(section.id)
                   const canAdd = editingOverview && Boolean(module)
                   return <li key={section.id} className={canAdd ? 'submenu-addable' : undefined}>
-                    <button draggable={canAdd} onDragStart={event => { if (canAdd && module) event.dataTransfer.setData(dragType, module) }} onClick={() => {
+                    <button draggable={canAdd} onPointerDown={event => { if (canAdd && module) startMenuGesture(event, module) }}
+                      onDragStart={event => { if (canAdd && module) event.dataTransfer.setData(dragType, module) }} onClick={() => {
                       if (canAdd && module) { setAddModule({ id: module }); setMenu(false) }
                       else go(title, section.id)
-                    }}>{canAdd ? <span aria-hidden="true">＋ </span> : null}{section.label}</button>
+                    }}>{canAdd && <Plus size={13} aria-hidden="true"/>}{section.label}</button>
                   </li>
                 })}
               </ul>}
@@ -203,10 +247,14 @@ export default function Dashboard() {
         {mobileNav.map(({ title, icon: Icon }) => <button key={title} aria-current={view === title ? 'page' : undefined} onClick={() => go(title)}><Icon size={19}/><span>{title}</span></button>)}
         <button className="dock-expand" aria-label="باز کردن منو" aria-expanded={menu} aria-controls="dashboard-navigation" onClick={() => setMenu(true)}><Menu size={19}/></button>
       </nav>
-      <main>
+      <main className={addingByTouch ? 'overview-touch-drop' : undefined}>
         <header className="topbar">
           <div className="trail"><span>فضای کاری</span><ArrowLeft size={13}/><strong>{view}</strong></div>
           <div className="actions">
+            {view === 'نمای کلی' && <button id="edit-overview" className="icon-button edit-overview-button" aria-pressed={editingOverview} onClick={() => {
+              setEditingOverview(!editingOverview)
+              if (!editingOverview) setCollapsed(false)
+            }}><Settings2 size={16}/>{editingOverview ? 'پایان ویرایش' : 'ویرایش صفحه'}</button>}
             <span className="topbar-user">{userName}</span>
             <PlannerBell openCalendar={() => go('تقویم شمسی')}/>
             {view !== 'منابع داده' && view !== 'سرویس کارکنان' && view !== 'تقویم شمسی' && <label className="select"><MapPin size={16}/><select aria-label="فیلتر شعبه" value={city} onChange={event => setCity(event.target.value as City)}>{cities.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={14}/></label>}
@@ -217,7 +265,7 @@ export default function Dashboard() {
         {view === 'نمای کلی' && <div className="page-intro overview-intro"><div><h1>داشبورد منابع انسانی</h1><p>الکتروکویر · تهران و یزد</p></div><span className="demo"><i/>داده‌های نمایشی</span></div>}
         {view !== 'نمای کلی' && <div className="page-intro"><h1>{view}</h1><p>{view === 'منابع داده' ? 'فهرست فیلدها و مراجع استخراج‌شده از فایل اکسل' : view === 'سرویس کارکنان' ? 'مدیریت مسیر و ظرفیت سرویس‌های یزد' : view === 'تقویم شمسی' ? 'کارهای روزانه و تعطیلات رسمی' : view === 'خروجی' ? 'ساخت گزارش از بخش‌های انتخابی داشبورد' : 'داده‌های نمایشی · ' + city}</p></div>}
 
-        {view === 'نمای کلی' && <OverviewLayout editing={editingOverview} setEditing={setEditingOverview} addRequest={addModule} modules={{
+        {view === 'نمای کلی' && <OverviewLayout editing={editingOverview} addRequest={addModule} modules={{
           ...Object.fromEntries((Object.keys(chartLabels) as ChartId[]).map(id => [id, <AnalyticsChart key={id} id={id} people={employees} routes={overviewRoutes} embedded/>])),
           'org-chart': <section className="panel glass"><h2>چارت سازمانی</h2><div className="org-grid">{data.units.map(unit => <span key={unit.name} className="org-node">{unit.name}</span>)}</div><button className="icon-button" onClick={() => go('نیروی انسانی', 'org-chart')}>چارت کامل</button></section>,
           'workforce-summary': <section className="panel glass"><h2>کارکنان واحدها</h2><div className="graph-legend">{data.units.map(unit => <span key={unit.name}>{unit.name} · {fa(unit.count)}</span>)}</div><button className="icon-button" onClick={() => go('نیروی انسانی', 'workforce-summary')}>جدول کامل</button></section>,

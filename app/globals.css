@@ -703,20 +703,25 @@ body::before { opacity: .33; }
 .analytics-table tbody tr:nth-child(even) { background: #ffffff07; }
 .quick-stat-grid { margin-bottom: 12px; }
 .hr-detail-toggle { margin-top: 12px; }
-.layout-controls { display: flex; justify-content: flex-end; margin-bottom: 6px; }
-.overview-modules.editing-layout { display: grid; grid-template-columns: minmax(120px, .23fr) minmax(0, 1fr); align-items: start; gap: 13px; }
-.module-palette { display: grid; gap: 6px; }
-.module-palette p { font-size: 11px; color: var(--muted); }
 .module-list { min-width: 0; }
 .editing-layout .module-list { display: grid; gap: 10px; }
-.module-tools { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 7px; background: #a498d42e; }
-.module-tools span { display: flex; gap: 4px; align-items: center; cursor: grab; margin-inline-end: auto; font-size: 12px; }
-.module-tools .icon-button { min-height: 26px; padding: 3px; }
-.module-drop { border: 1px dashed var(--edge); text-align: center; padding: 12px; border-radius: 10px; color: var(--muted); font-size: 12px; }
-@media(max-width: 650px) { .overview-modules.editing-layout { grid-template-columns: 1fr; } }
-.route-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
-.route-kpis span { display: flex; justify-content: space-between; border-radius: 7px; background: #c7baf324; padding: 4px 6px; font-size: 11px; }
-.route-stop-marker { display: grid; place-items: center; border: 2px solid #f6eaff; border-radius: 50%; background: #4a386e; color: #fff; font: 10px system-ui; }
+.module-list > article { min-width: 0; border-radius: 18px; transition: outline-color .2s, opacity .2s; }
+.module-tools { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 3px 8px; border: 1px solid var(--edge); border-radius: 11px; }
+.module-tools span { color: var(--muted); font-size: 12px; }
+.module-tools .icon-button { min-height: 38px; min-width: 38px; justify-content: center; padding: 4px; }
+.module-grip { cursor: grab; touch-action: none; }
+.module-grip:active { cursor: grabbing; }
+.module-remove { color: #efbad0; }
+.module-moving { opacity: .6; }
+.module-target, .overview-touch-drop .module-drop { outline: 2px solid #cdb4f3; outline-offset: 3px; }
+.module-drop { border: 1px dashed var(--edge); text-align: center; padding: 10px; border-radius: 10px; color: var(--muted); font-size: 12px; }
+.layout-status { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+.edit-overview-button[aria-pressed=true] { border-color: #dcc5ff; background: #b299e845; }
+.module-confirm:not([open]) { display: none; }
+.module-confirm { color: var(--ink); background-color: #202333; border: 1px solid #d6c7f660; }
+.module-confirm::backdrop { background: #0b0b168f; backdrop-filter: blur(4px); }
+.module-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; }
+.module-confirm-delete { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border: 1px solid #f4b4cd88; border-radius: 8px; background: #884361; color: #fff; }
 .chat-form { margin-top: 10px; }
 .chat-form input { flex: 1; min-width: min(100%,180px); }
 .chat-history { display: grid; gap: 8px; max-height: 45vh; overflow: auto; }
@@ -753,5 +758,6 @@ main [id] { scroll-margin-top: 24px; }
 .graph-axis { direction: ltr; display: grid; grid-template-columns: repeat(4,1fr); text-align: center; gap: 2px; font-size: 9px; }
 .graph-axis b { display: block; font-size: 10px; }
 .graph-timelines + .graph-legend { margin-top: 9px; }
-.submenu-addable button { border: 1px dashed #d7bffc6e; cursor: grab; margin-block: 2px; }
+.submenu-addable button { display: flex; align-items: center; gap: 4px; border: 1px dashed #d7bffc6e; cursor: grab; margin-block: 2px; touch-action: pan-y; }
+.submenu-addable button svg { flex: none; color: #dfc8ff; }
 @media(max-width: 650px) { .graph-timelines { grid-template-columns: 1fr; } .graph-stacks > div, .graph-attendance > div { font-size: 10px; grid-template-columns: minmax(68px,.5fr) minmax(30px,1fr) minmax(45px,.5fr); } }
